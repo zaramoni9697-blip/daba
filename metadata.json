@@ -1,0 +1,6 @@
+{
+  "name": "Royal Chess - Mobile & Desktop Chess Master",
+  "description": "A professional mobile-first chess application with local 2-player, AI engine difficulty levels, online multiplayer rooms, timers, PWA offline support, and bilingual interface.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
