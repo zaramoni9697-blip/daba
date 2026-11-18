@@ -1,0 +1,4 @@
+<resources>
+<string name="app_name">JARVIS</string>
+<string name="accessibility_desc">Allows JARVIS to perform user-requested navigation actions such as Home, Back, Recents and scrolling after the user explicitly enables the service.</string>
+</resources>
