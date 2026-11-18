@@ -16,34 +16,43 @@ class RunwayClient {
     private val jsonType = "application/json".toMediaType()
     private val baseUrl = "https://api.dev.runwayml.com"
 
-    suspend fun generate(apiKey: String, prompt: String, duration: Int, ratio: String): RunwayResult =
-        withContext(Dispatchers.IO) {
-            val body = JSONObject()
-                .put("model", "seedance2_5")
-                .put("promptText", prompt)
-                .put("ratio", ratio)
-                .put("duration", duration)
-                .toString()
+    suspend fun generate(
+        apiKey: String,
+        prompt: String,
+        duration: Int,
+        ratio: String,
+        draft: Boolean,
+        audio: Boolean
+    ): RunwayResult = withContext(Dispatchers.IO) {
+        val json = JSONObject()
+            .put("model", "seedance2_5")
+            .put("promptText", prompt)
+            .put("ratio", ratio)
+            .put("duration", duration)
+            .put("draft", draft)
+            .put("audio", audio)
 
-            val request = Request.Builder()
-                .url(baseUrl + "/v1/text_to_video")
-                .addHeader("Authorization", "Bearer " + apiKey)
-                .addHeader("X-Runway-Version", "2024-11-06")
-                .addHeader("Content-Type", "application/json")
-                .post(body.toRequestBody(jsonType))
-                .build()
+        val request = Request.Builder()
+            .url(baseUrl + "/v1/text_to_video")
+            .addHeader("Authorization", "Bearer " + apiKey)
+            .addHeader("X-Runway-Version", "2024-11-06")
+            .addHeader("Content-Type", "application/json")
+            .post(json.toString().toRequestBody(jsonType))
+            .build()
 
-            client.newCall(request).execute().use { response ->
-                val text = response.body?.string().orEmpty()
-                if (!response.isSuccessful) throw IllegalStateException(parseError(text, "Runway rejected the request (" + response.code + ")."))
-                val id = JSONObject(text).optString("id")
-                if (id.isBlank()) throw IllegalStateException("Runway did not return a task ID.")
-                poll(apiKey, id)
+        client.newCall(request).execute().use { response ->
+            val text = response.body?.string().orEmpty()
+            if (!response.isSuccessful) {
+                throw IllegalStateException(parseError(text, "Runway rejected the request (" + response.code + ")."))
             }
+            val id = JSONObject(text).optString("id")
+            if (id.isBlank()) throw IllegalStateException("Runway did not return a task ID.")
+            poll(apiKey, id)
         }
+    }
 
     private suspend fun poll(apiKey: String, taskId: String): RunwayResult {
-        repeat(120) {
+        repeat(180) {
             val request = Request.Builder()
                 .url(baseUrl + "/v1/tasks/" + taskId)
                 .addHeader("Authorization", "Bearer " + apiKey)
@@ -54,7 +63,9 @@ class RunwayClient {
             val text = withContext(Dispatchers.IO) {
                 client.newCall(request).execute().use { response ->
                     val value = response.body?.string().orEmpty()
-                    if (!response.isSuccessful) throw IllegalStateException(parseError(value, "Could not read task status (" + response.code + ")."))
+                    if (!response.isSuccessful) {
+                        throw IllegalStateException(parseError(value, "Could not read task status (" + response.code + ")."))
+                    }
                     value
                 }
             }
@@ -67,7 +78,9 @@ class RunwayClient {
                     if (url.isBlank()) throw IllegalStateException("Generation succeeded but no video URL was returned.")
                     return RunwayResult(taskId, url)
                 }
-                "FAILED", "CANCELED" -> throw IllegalStateException(task.optString("failure").ifBlank { "Runway generation failed." })
+                "FAILED", "CANCELED" -> {
+                    throw IllegalStateException(task.optString("failure").ifBlank { "Runway generation failed." })
+                }
             }
             delay(5000)
         }
