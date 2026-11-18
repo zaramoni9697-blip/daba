@@ -2,7 +2,8 @@ plugins { id 'com.android.application' }
 
 android {
     namespace 'com.jarvis.ai'
-    compileSdk 36
+    compileSdk 35
+
     signingConfigs {
         debug {
             storeFile file(System.getenv("JARVIS_KEYSTORE") ?: "${rootDir}/debug.keystore")
@@ -24,10 +25,10 @@ android {
 
     defaultConfig {
         applicationId 'com.jarvis.ai'
-        minSdk 26
-        targetSdk 35
-        versionCode 12
-        versionName "1.1.1"
+        minSdk 23
+        targetSdk 29
+        versionCode 13
+        versionName "1.2.0"
     }
 }
 
