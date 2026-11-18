@@ -26,7 +26,7 @@ jobs:
 
       - name: Install Android SDK packages
         run: |
-          sdkmanager "platforms;android-36" "build-tools;36.0.0"
+          sdkmanager "platforms;android-35" "build-tools;35.0.0"
           yes | sdkmanager --licenses >/dev/null || true
 
       - name: Set up Gradle 9.6
@@ -46,7 +46,7 @@ jobs:
             -validity 10000 \
             -dname "CN=JARVIS Debug,O=JARVIS,C=US"
 
-      - name: Build debug APK
+      - name: Build compatibility APK
         env:
           JARVIS_KEYSTORE: ${{ runner.temp }}/jarvis-debug.keystore
           JARVIS_STORE_PASSWORD: android
@@ -58,13 +58,13 @@ jobs:
         run: |
           APK=app/build/outputs/apk/release/app-release.apk
           test -s "$APK"
-          $ANDROID_HOME/build-tools/36.0.0/apksigner verify --verbose "$APK"
-          $ANDROID_HOME/build-tools/36.0.0/aapt2 dump badging "$APK" | head -n 20
+          $ANDROID_HOME/build-tools/35.0.0/apksigner verify --verbose "$APK"
+          $ANDROID_HOME/build-tools/35.0.0/aapt2 dump badging "$APK" | head -n 25
           unzip -t "$APK" >/dev/null
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: jarvis-debug-apk
+          name: jarvis-android10-apk
           path: app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
