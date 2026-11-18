@@ -1,6 +1,6 @@
 # Cloud AI Video Generator — Android
 
-A native Android text-to-video app powered by Runway Dev / Seedance 2.5.
+A native Android text-to-video app powered by Agnes AI Dev / Seedance 2.5.
 
 ## Included
 
@@ -11,20 +11,20 @@ A native Android text-to-video app powered by Runway Dev / Seedance 2.5.
 - 16:9 / 9:16 / 1:1 / 4:3 / 3:4
 - Draft preview mode
 - Generated audio toggle
-- Settings screen for the user's Runway API key
+- Settings screen for the user's Agnes AI API key
 - Encrypted API-key storage
 - Generation history (last 30)
 - Open, save and share generated videos
 - Custom launcher icon
 - Material 3 UI
 
-## Runway support
+## Agnes AI support
 
 Seedance 2.5 supports 4–30 seconds and pixel-based ratios across 480p, 720p, 1080p and 4K. 4K uses 3840×2160 for 16:9 and 2160×3840 for 9:16.
 
 ## Security
 
-The API key is stored encrypted on the device. This is appropriate for a personal app where the user supplies their own key, but a client-side secret cannot be made absolutely unrecoverable. For a public SaaS, move the Runway key to a backend.
+The API key is stored encrypted on the device. This is appropriate for a personal app where the user supplies their own key, but a client-side secret cannot be made absolutely unrecoverable. For a public SaaS, move the Agnes AI key to a backend.
 
 ## Build
 
