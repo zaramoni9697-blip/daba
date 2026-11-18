@@ -54,6 +54,14 @@ jobs:
           JARVIS_KEY_PASSWORD: android
         run: gradle assembleRelease --no-daemon
 
+      - name: Validate APK
+        run: |
+          APK=app/build/outputs/apk/release/app-release.apk
+          test -s "$APK"
+          $ANDROID_HOME/build-tools/36.0.0/apksigner verify --verbose "$APK"
+          $ANDROID_HOME/build-tools/36.0.0/aapt2 dump badging "$APK" | head -n 20
+          unzip -t "$APK" >/dev/null
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
