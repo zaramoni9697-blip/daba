@@ -16,6 +16,10 @@ android {
         debug {
             signingConfig signingConfigs.debug
         }
+        release {
+            signingConfig signingConfigs.debug
+            minifyEnabled false
+        }
     }
 
     defaultConfig {
