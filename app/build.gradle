@@ -2,7 +2,7 @@ plugins { id 'com.android.application' }
 
 android {
     namespace 'com.jarvis.ai'
-    compileSdk 35
+    compileSdk 36
 
     signingConfigs {
         debug {
@@ -27,8 +27,8 @@ android {
         applicationId 'com.jarvis.ai'
         minSdk 23
         targetSdk 29
-        versionCode 13
-        versionName "1.2.0"
+        versionCode 14
+        versionName "1.2.1"
     }
 }
 
