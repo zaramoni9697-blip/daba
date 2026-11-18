@@ -40,6 +40,6 @@ public class JarvisEngine {
         return r.getJSONArray("choices").getJSONObject(0).getJSONObject("message").getString("content");
     }
     private void write(HttpURLConnection c,String s)throws Exception{try(OutputStream o=c.getOutputStream()){o.write(s.getBytes("UTF-8"));}}
-    private String read(HttpURLConnection c)throws Exception{InputStream in=c.getResponseCode()<400?c.getInputStream():c.getErrorStream();try(BufferedReader b=new BufferedReader(new InputStreamReader(in))){StringBuilder s=new StringBuilder(),l;while((l=b.readLine())!=null)s.append(l);return s.toString();}}
+    private String read(HttpURLConnection c)throws Exception{InputStream in=c.getResponseCode()<400?c.getInputStream():c.getErrorStream();try(BufferedReader b=new BufferedReader(new InputStreamReader(in))){StringBuilder s=new StringBuilder(); String l;while((l=b.readLine())!=null)s.append(l);return s.toString();}}
     public JarvisMemory memory(){return memory;}
 }
