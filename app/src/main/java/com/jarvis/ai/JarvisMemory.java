@@ -27,5 +27,5 @@ public class JarvisMemory {
         }catch(Exception e){return "";}
     }
     public synchronized void clear(){context.getSharedPreferences(PREF,0).edit().remove(KEY).apply();}
-    private JSONArray read(){return new JSONArray(context.getSharedPreferences(PREF,0).getString(KEY,"[]"));}
+    private JSONArray read(){try{return new JSONArray(context.getSharedPreferences(PREF,0).getString(KEY,"[]"));}catch(Exception e){return new JSONArray();}}
 }
