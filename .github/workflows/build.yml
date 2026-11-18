@@ -34,7 +34,24 @@ jobs:
         with:
           gradle-version: '9.6.0'
 
+      - name: Create APK signing key
+        run: |
+          keytool -genkeypair -v \
+            -keystore "$RUNNER_TEMP/jarvis-debug.keystore" \
+            -storepass android \
+            -keypass android \
+            -alias androiddebugkey \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -dname "CN=JARVIS Debug,O=JARVIS,C=US"
+
       - name: Build debug APK
+        env:
+          JARVIS_KEYSTORE: ${{ runner.temp }}/jarvis-debug.keystore
+          JARVIS_STORE_PASSWORD: android
+          JARVIS_KEY_ALIAS: androiddebugkey
+          JARVIS_KEY_PASSWORD: android
         run: gradle assembleDebug --no-daemon
 
       - name: Upload APK
