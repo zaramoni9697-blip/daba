@@ -73,7 +73,7 @@ fun VideoGeneratorApp() {
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Text("Text → Video", style = MaterialTheme.typography.headlineMedium)
-                Text("Create cinematic videos with Seedance 2.5.")
+                Text("Create videos with Agnes Video 2.5 Flash (free tier).")
 
                 OutlinedTextField(
                     value = prompt,
@@ -85,7 +85,7 @@ fun VideoGeneratorApp() {
                 )
 
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    SimpleDropdown("Duration", "$duration sec", (4..30).map { "$it sec" },
+                    SimpleDropdown("Duration", "$duration sec", (4..12).map { "$it sec" },
                         { duration = it.removeSuffix(" sec").toInt() }, Modifier.weight(1f))
                     SimpleDropdown("Ratio", ratio, listOf("16:9", "9:16", "1:1", "4:3", "3:4"),
                         { ratio = it }, Modifier.weight(1f))
@@ -94,51 +94,33 @@ fun VideoGeneratorApp() {
                 SimpleDropdown(
                     "Quality",
                     quality,
-                    listOf("480p", "720p", "1080p", "4K"),
+                    listOf("720p"),
                     { quality = it },
                     Modifier.fillMaxWidth()
                 )
 
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Column {
-                        Text("Draft preview")
-                        Text("Fast 480p preview", style = MaterialTheme.typography.bodySmall)
-                    }
-                    Switch(checked = draft, onCheckedChange = { draft = it })
-                }
-
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Column {
-                        Text("Generated audio")
-                        Text("Let the model generate audio", style = MaterialTheme.typography.bodySmall)
-                    }
-                    Switch(checked = audio, onCheckedChange = { audio = it })
-                }
-
-                if (quality == "4K") {
-                    Text("4K is much more expensive. Use it only when you need the final master.",
-                        color = MaterialTheme.colorScheme.error)
-                }
+                Text(
+                    "Free Flash mode supports 720p and 4–12 second videos. The free API is rate-limited and availability can vary.",
+                    style = MaterialTheme.typography.bodySmall
+                )
 
                 Button(
                     onClick = {
                         error = ""; videoUrl = ""
                         if (apiKey.isBlank()) {
-                            error = "Open Settings and add your Runway API key first."
+                            error = "Open Settings and add your Agnes AI API key first."
                             return@Button
                         }
                         generating = true
                         status = "Generating video. This may take a few minutes..."
                         scope.launch {
                             try {
-                                val selectedRatio = ratioToPixels(ratio, quality)
-                                val result = RunwayClient().generate(
+                                val selectedRatio = ratio
+                                val result = AgnesClient().generate(
                                     apiKey = apiKey,
                                     prompt = prompt.trim(),
                                     duration = duration,
-                                    ratio = selectedRatio,
-                                    draft = draft,
-                                    audio = audio
+                                    ratio = selectedRatio
                                 )
                                 videoUrl = result.videoUrl
                                 historyStore.add(HistoryItem(prompt.trim(), result.videoUrl, System.currentTimeMillis()))
@@ -210,39 +192,6 @@ fun VideoGeneratorApp() {
     )
 }
 
-private fun ratioToPixels(ratio: String, quality: String): String {
-    return when (quality) {
-        "4K" -> when (ratio) {
-            "16:9" -> "3840:2160"
-            "9:16" -> "2160:3840"
-            "1:1" -> "3840:3840"
-            "4:3" -> "3840:2880"
-            else -> "2880:3840"
-        }
-        "1080p" -> when (ratio) {
-            "16:9" -> "1920:1080"
-            "9:16" -> "1080:1920"
-            "1:1" -> "1080:1080"
-            "4:3" -> "1440:1080"
-            else -> "1080:1440"
-        }
-        "480p" -> when (ratio) {
-            "16:9" -> "854:480"
-            "9:16" -> "480:854"
-            "1:1" -> "480:480"
-            "4:3" -> "640:480"
-            else -> "480:640"
-        }
-        else -> when (ratio) {
-            "16:9" -> "1280:720"
-            "9:16" -> "720:1280"
-            "1:1" -> "1080:1080"
-            "4:3" -> "1280:960"
-            else -> "960:1280"
-        }
-    }
-}
-
 @Composable
 private fun SimpleDropdown(label: String, value: String, options: List<String>, onSelect: (String) -> Unit, modifier: Modifier) {
     var expanded by remember { mutableStateOf(false) }
@@ -265,13 +214,13 @@ private fun SettingsDialog(initialKey: String, onDismiss: () -> Unit, onSave: (S
         title = { Text("Settings") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("Your Runway API key is encrypted on this device.")
+                Text("Your Agnes AI API key is encrypted on this device.")
                 OutlinedTextField(
                     value = value, onValueChange = { value = it },
-                    modifier = Modifier.fillMaxWidth(), label = { Text("Runway API key") },
+                    modifier = Modifier.fillMaxWidth(), label = { Text("Agnes AI API key") },
                     singleLine = true, visualTransformation = PasswordVisualTransformation()
                 )
-                Text("The key is sent directly to Runway over HTTPS.", style = MaterialTheme.typography.bodySmall)
+                Text("The key is sent directly to Agnes AI over HTTPS.", style = MaterialTheme.typography.bodySmall)
             }
         },
         confirmButton = { Button(onClick = { onSave(value) }, enabled = value.isNotBlank()) { Text("Save") } },
