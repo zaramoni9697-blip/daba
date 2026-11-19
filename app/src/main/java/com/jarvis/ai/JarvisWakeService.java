@@ -1,15 +1,11 @@
 package com.jarvis.ai;
 import android.app.*;import android.content.*;import android.os.*;import android.speech.*;import java.util.*;
-
-public class JarvisWakeService extends Service {
-    private SpeechRecognizer recognizer; private boolean running; private static final String CH="jarvis_v1";
-    @Override public void onCreate(){super.onCreate();channel();Notification n=new Notification.Builder(this,CH).setContentTitle("JARVIS").setContentText("Listening for Hey JARVIS").setSmallIcon(android.R.drawable.ic_btn_speak_now).setOngoing(true).build();startForeground(1001,n);startRecognizer();}
-    private void startRecognizer(){if(!SpeechRecognizer.isRecognitionAvailable(this))return;running=true;recognizer=SpeechRecognizer.createSpeechRecognizer(this);recognizer.setRecognitionListener(new RecognitionListener(){
-        public void onResults(Bundle b){check(b);if(running)listen();} public void onPartialResults(Bundle b){check(b);} public void onError(int e){if(running)listen();}
-        public void onReadyForSpeech(Bundle b){} public void onBeginningOfSpeech(){} public void onRmsChanged(float r){} public void onBufferReceived(byte[] b){} public void onEndOfSpeech(){} public void onEvent(int a,Bundle b){}
-    });listen();}
-    private void listen(){if(!running||recognizer==null)return;Intent i=new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);i.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);i.putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE,true);i.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS,true);try{recognizer.startListening(i);}catch(Exception ignored){}}
-    private void check(Bundle b){ArrayList<String> r=b.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);if(r==null)return;for(String s:r){String x=s.toLowerCase(Locale.ROOT);if(x.contains("hey jarvis")||x.contains("হেই জারভিস")||x.contains("হে জারভিস")){Intent in=new Intent(this,MainActivity.class);in.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK|Intent.FLAG_ACTIVITY_SINGLE_TOP);in.putExtra("wake",true);startActivity(in);break;}}}
-    private void channel(){if(Build.VERSION.SDK_INT>=26)getSystemService(NotificationManager.class).createNotificationChannel(new NotificationChannel(CH,"JARVIS Wake",NotificationManager.IMPORTANCE_LOW));}
-    @Override public int onStartCommand(Intent i,int f,int id){return START_STICKY;} @Override public void onDestroy(){running=false;if(recognizer!=null)recognizer.destroy();super.onDestroy();} @Override public IBinder onBind(Intent i){return null;}
-}
+public class JarvisWakeService extends Service{
+private SpeechRecognizer recognizer;private boolean running;private static volatile boolean active;private static final String CH="jarvis_v1";
+public static boolean isRunning(){return active;}
+@Override public void onCreate(){super.onCreate();active=true;channel();Notification n=new Notification.Builder(this,CH).setContentTitle("JARVIS").setContentText("Listening for Hey JARVIS").setSmallIcon(android.R.drawable.ic_btn_speak_now).setOngoing(true).build();startForeground(1001,n);startRecognizer();}
+private void startRecognizer(){if(!SpeechRecognizer.isRecognitionAvailable(this))return;running=true;recognizer=SpeechRecognizer.createSpeechRecognizer(this);recognizer.setRecognitionListener(new RecognitionListener(){public void onResults(Bundle b){check(b);if(running)listen();}public void onPartialResults(Bundle b){check(b);}public void onError(int e){if(running)listen();}public void onReadyForSpeech(Bundle b){}public void onBeginningOfSpeech(){}public void onRmsChanged(float r){}public void onBufferReceived(byte[] b){}public void onEndOfSpeech(){}public void onEvent(int a,Bundle b){}});listen();}
+private void listen(){if(!running||recognizer==null)return;Intent i=new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);i.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);i.putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE,true);i.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS,true);try{recognizer.startListening(i);}catch(Exception ignored){}}
+private void check(Bundle b){ArrayList<String> r=b.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);if(r==null)return;for(String s:r){String x=s.toLowerCase(Locale.ROOT);if(x.contains("hey jarvis")||x.contains("হেই জারভিস")||x.contains("হে জারভিস")){Intent in=new Intent(this,MainActivity.class);in.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK|Intent.FLAG_ACTIVITY_SINGLE_TOP);in.putExtra("wake",true);startActivity(in);break;}}}
+private void channel(){if(Build.VERSION.SDK_INT>=26)getSystemService(NotificationManager.class).createNotificationChannel(new NotificationChannel(CH,"JARVIS Wake",NotificationManager.IMPORTANCE_LOW));}
+@Override public int onStartCommand(Intent i,int f,int id){return START_STICKY;}@Override public void onDestroy(){running=false;active=false;if(recognizer!=null)recognizer.destroy();super.onDestroy();}@Override public IBinder onBind(Intent i){return null;}}
