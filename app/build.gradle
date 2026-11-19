@@ -13,7 +13,7 @@ android {
 
             // Maximum compatibility with Android 10 and older package installers.
             enableV1Signing true
-            enableV2Signing false
+            enableV2Signing true
             enableV3Signing false
             enableV4Signing false
         }
