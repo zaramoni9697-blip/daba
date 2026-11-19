@@ -73,7 +73,11 @@ public class SettingsActivity extends AppCompatActivity {
         TextView info=tv("Choose your primary brain. API keys stay encrypted on this device.",13,Color.rgb(190,186,200));info.setPadding(0,dp(5),0,dp(8));status.addView(info);
         provider=new Spinner(this); provider.setAdapter(new ArrayAdapter<String>(this,android.R.layout.simple_spinner_dropdown_item,providers));
         String saved=SecureStore.get(this,"primary");if(saved!=null)for(int i=0;i<providers.length;i++)if(providers[i].equals(saved))provider.setSelection(i);
-        status.addView(provider,new LinearLayout.LayoutParams(-1,dp(48)));\n        TextView speechLabel=section("Speech language");status.addView(speechLabel);\n        speechLanguage=new Spinner(this);String[] langs={"AUTO • বাংলা + English","bn-BD • বাংলা","en-US • English"};speechLanguage.setAdapter(new ArrayAdapter<String>(this,android.R.layout.simple_spinner_dropdown_item,langs));\n        String sl=SecureStore.get(this,"speech_language");if("bn-BD".equals(sl))speechLanguage.setSelection(1);else if("en-US".equals(sl))speechLanguage.setSelection(2);else speechLanguage.setSelection(0);\n        status.addView(speechLanguage,new LinearLayout.LayoutParams(-1,dp(48)));root.addView(status);
+        status.addView(provider,new LinearLayout.LayoutParams(-1,dp(48)));
+        TextView speechLabel=section("Speech language");status.addView(speechLabel);
+        speechLanguage=new Spinner(this);String[] langs={"AUTO • বাংলা + English","bn-BD • বাংলা","en-US • English"};speechLanguage.setAdapter(new ArrayAdapter<String>(this,android.R.layout.simple_spinner_dropdown_item,langs));
+        String sl=SecureStore.get(this,"speech_language");if("bn-BD".equals(sl))speechLanguage.setSelection(1);else if("en-US".equals(sl))speechLanguage.setSelection(2);else speechLanguage.setSelection(0);
+        status.addView(speechLanguage,new LinearLayout.LayoutParams(-1,dp(48)));root.addView(status);
 
         LinearLayout keys=card();keys.addView(section("Encrypted API vault"));
         gemini=key("Gemini API key","gemini");addField(keys,gemini);
