@@ -25,6 +25,7 @@ public class MainActivity extends AppCompatActivity {
     private boolean externalAppLaunch=false;
     private boolean recognitionInProgress=false;
     private SpeechRecognizer recognizer;
+    private boolean activityVisible=false;
 
     @Override protected void onCreate(Bundle b){
         super.onCreate(b);
@@ -57,24 +58,34 @@ public class MainActivity extends AppCompatActivity {
 
     @Override protected void onResume(){
         super.onResume();
-        // The foreground activity owns the microphone. Stop the background
-        // wake recognizer here so two SpeechRecognizers never fight for audio.
+        activityVisible=true;
+        // Never allow the background wake recognizer to compete with the
+        // in-app recognizer while JARVIS is visible.
+        handler.removeCallbacksAndMessages(null);
         if(JarvisWakeService.isRunning()){
             try { stopService(new Intent(this,JarvisWakeService.class)); } catch(Exception ignored) {}
         }
         externalAppLaunch=false;
-        if(continuousVoice && mic() && !recognitionInProgress)
-            handler.postDelayed(this::listen,500);
+        if(continuousVoice && mic())
+            handler.postDelayed(this::listen,700);
     }
 
     @Override protected void onPause(){
         super.onPause();
+        activityVisible=false;
         if(isFinishing()) return;
-        // When JARVIS leaves the foreground, hand the microphone to the
-        // background wake listener so "Hey JARVIS" can still work outside.
-        handler.removeCallbacks(this::listen);
-        if(mic() && !"false".equals(SecureStore.get(this,"wake_enabled"))){
-            handler.postDelayed(this::ensureWakeService,350);
+        handler.removeCallbacksAndMessages(null);
+        stopInAppRecognizer();
+        if(mic() && !"false".equals(SecureStore.get(this,"wake_enabled")))
+            handler.postDelayed(this::ensureWakeService,700);
+    }
+
+    private void stopInAppRecognizer(){
+        recognitionInProgress=false;
+        if(recognizer!=null){
+            try { recognizer.cancel(); } catch(Exception ignored) {}
+            try { recognizer.destroy(); } catch(Exception ignored) {}
+            recognizer=null;
         }
     }
 
@@ -118,7 +129,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void listen(){
-        if(!continuousVoice || recognitionInProgress || !mic()) return;
+        if(!activityVisible || !continuousVoice || recognitionInProgress || !mic()) return;
         recognitionInProgress=true;
         if(!SpeechRecognizer.isRecognitionAvailable(this)){
             recognitionInProgress=false;
@@ -143,7 +154,10 @@ public class MainActivity extends AppCompatActivity {
             }
             public void onError(int e){
                 recognitionInProgress=false;
-                if(continuousVoice) handler.postDelayed(MainActivity.this::listen,500);
+                // Common Android recognition errors are transient; retry only
+                // while the JARVIS activity is actually visible.
+                if(activityVisible && continuousVoice)
+                    handler.postDelayed(MainActivity.this::listen,700);
             }
             public void onReadyForSpeech(Bundle b){status.setText("Listening…");}
             public void onBeginningOfSpeech(){}
@@ -244,5 +258,5 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void settings(){startActivity(new Intent(this,SettingsActivity.class));}
-    @Override protected void onDestroy(){handler.removeCallbacksAndMessages(null);if(recognizer!=null){try{recognizer.destroy();}catch(Exception ignored){}}if(tts!=null)tts.shutdown();super.onDestroy();}
+    @Override protected void onDestroy(){handler.removeCallbacksAndMessages(null);stopInAppRecognizer();if(tts!=null)tts.shutdown();super.onDestroy();}
 }
