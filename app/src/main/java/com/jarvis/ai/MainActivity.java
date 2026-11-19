@@ -24,6 +24,7 @@ public class MainActivity extends AppCompatActivity {
     private boolean continuousVoice=true;
     private boolean externalAppLaunch=false;
     private boolean recognitionInProgress=false;
+    private SpeechRecognizer recognizer;
 
     @Override protected void onCreate(Bundle b){
         super.onCreate(b);
@@ -108,15 +109,49 @@ public class MainActivity extends AppCompatActivity {
     private void listen(){
         if(!continuousVoice || recognitionInProgress || !mic()) return;
         recognitionInProgress=true;
+        if(!SpeechRecognizer.isRecognitionAvailable(this)){
+            recognitionInProgress=false;
+            status.setText("Speech recognition unavailable");
+            handler.postDelayed(this::listen,1500);
+            return;
+        }
+        if(recognizer!=null){
+            try { recognizer.destroy(); } catch(Exception ignored) {}
+        }
+        recognizer=SpeechRecognizer.createSpeechRecognizer(this);
+        recognizer.setRecognitionListener(new RecognitionListener(){
+            public void onResults(Bundle b){
+                recognitionInProgress=false;
+                ArrayList<String> a=b.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+                if(a!=null&&!a.isEmpty()){
+                    String cmd=a.get(0);
+                    transcript.setText(cmd);
+                    transcript.setVisibility(View.VISIBLE);
+                    execute(cmd);
+                }else restartListening(400);
+            }
+            public void onError(int e){
+                recognitionInProgress=false;
+                if(continuousVoice) handler.postDelayed(MainActivity.this::listen,500);
+            }
+            public void onReadyForSpeech(Bundle b){status.setText("Listening…");}
+            public void onBeginningOfSpeech(){}
+            public void onRmsChanged(float r){}
+            public void onBufferReceived(byte[] b){}
+            public void onEndOfSpeech(){}
+            public void onPartialResults(Bundle b){}
+            public void onEvent(int a, Bundle b){}
+        });
         Intent i=new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
         i.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
         i.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS,false);
+        i.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS,5);
         String lang=SecureStore.get(this,"speech_language");
         if(lang==null||lang.isEmpty()||lang.equals("AUTO")){
             i.putExtra(RecognizerIntent.EXTRA_LANGUAGE,"bn-BD");
             i.putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE,"bn-BD,en-US");
         }else i.putExtra(RecognizerIntent.EXTRA_LANGUAGE,lang);
-        try { startActivityForResult(i,SPEECH); }
+        try { recognizer.startListening(i); }
         catch(Exception e){
             recognitionInProgress=false;
             handler.postDelayed(this::listen,1200);
@@ -125,21 +160,6 @@ public class MainActivity extends AppCompatActivity {
         status.setVisibility(View.VISIBLE);
         status.setText("Listening…");
         subtitle.setText("বলুন — আমি শুনছি • বাংলা / English");
-    }
-
-    @Override protected void onActivityResult(int r,int c,Intent d){
-        super.onActivityResult(r,c,d);
-        if(r!=SPEECH)return;
-        recognitionInProgress=false;
-        ArrayList<String>a=d==null?null:d.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
-        if(a==null||a.isEmpty()){
-            if(continuousVoice)handler.postDelayed(this::listen,400);
-            return;
-        }
-        String cmd=a.get(0);
-        transcript.setText(cmd);
-        transcript.setVisibility(View.VISIBLE);
-        execute(cmd);
     }
 
     private void execute(String cmd){
@@ -213,5 +233,5 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void settings(){startActivity(new Intent(this,SettingsActivity.class));}
-    @Override protected void onDestroy(){handler.removeCallbacksAndMessages(null);if(tts!=null)tts.shutdown();super.onDestroy();}
+    @Override protected void onDestroy(){handler.removeCallbacksAndMessages(null);if(recognizer!=null){try{recognizer.destroy();}catch(Exception ignored){}}if(tts!=null)tts.shutdown();super.onDestroy();}
 }
