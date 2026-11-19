@@ -1,31 +1,38 @@
 package com.jarvis.ai;
 
 import android.content.Context;
+import android.content.Intent;
+import android.provider.Settings;
 import android.speech.tts.TextToSpeech;
-import android.speech.tts.UtteranceProgressListener;
+import android.widget.Toast;
 import java.util.Locale;
 
 public class JarvisTts {
+    private final Context context;
     private TextToSpeech tts;
     private boolean ready=false;
     private String pending=null;
 
     public JarvisTts(Context c){
-        tts=new TextToSpeech(c.getApplicationContext(),status->{
+        context=c.getApplicationContext();
+        init();
+    }
+
+    private void init(){
+        tts=new TextToSpeech(context,status->{
             if(status==TextToSpeech.SUCCESS){
                 ready=true;
-                setBestLanguage();
+                tts.setSpeechRate(0.95f);
+                tts.setPitch(1.0f);
                 if(pending!=null){
                     String p=pending;
                     pending=null;
                     speak(p);
                 }
+            }else{
+                ready=false;
+                Toast.makeText(context,"JARVIS voice engine unavailable. Enable Text-to-Speech.",Toast.LENGTH_LONG).show();
             }
-        });
-        tts.setOnUtteranceProgressListener(new UtteranceProgressListener(){
-            public void onStart(String id){}
-            public void onDone(String id){}
-            public void onError(String id){}
         });
     }
 
@@ -37,37 +44,50 @@ public class JarvisTts {
             if(ch>='\u0980'&&ch<='\u09FF')bn++;
             else if((ch>='A'&&ch<='Z')||(ch>='a'&&ch<='z'))latin++;
         }
-        return bn>0 && bn>=latin;
-    }
-
-    private void setBestLanguage(){
-        if(tts==null)return;
-        Locale target=new Locale("bn","BD");
-        int r=tts.setLanguage(target);
-        if(r==TextToSpeech.LANG_MISSING_DATA||r==TextToSpeech.LANG_NOT_SUPPORTED)
-            tts.setLanguage(Locale.US);
+        return bn>0&&bn>=latin;
     }
 
     public void speak(String text){
         if(text==null||text.trim().isEmpty())return;
-        if(tts==null)return;
-        if(!ready){
+        if(tts==null||!ready){
             pending=text;
             return;
         }
         Locale target=hasBangla(text)?new Locale("bn","BD"):Locale.US;
         int r=tts.setLanguage(target);
         if(r==TextToSpeech.LANG_MISSING_DATA||r==TextToSpeech.LANG_NOT_SUPPORTED){
-            target=Locale.US;
-            tts.setLanguage(target);
+            if(hasBangla(text)){
+                try{
+                    Intent i=new Intent(TextToSpeech.Engine.ACTION_INSTALL_TTS_DATA);
+                    i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    context.startActivity(i);
+                }catch(Exception ignored){}
+            }
+            tts.setLanguage(Locale.US);
         }
-        tts.speak(text,TextToSpeech.QUEUE_FLUSH,null,"jarvis");
+        int result=tts.speak(text,TextToSpeech.QUEUE_FLUSH,null,"jarvis_"+System.currentTimeMillis());
+        if(result==TextToSpeech.ERROR){
+            tts.stop();
+            tts.speak(text,TextToSpeech.QUEUE_FLUSH,null,"jarvis_retry_"+System.currentTimeMillis());
+        }
     }
+
+    public void openVoiceSettings(){
+        try{
+            Intent i=new Intent(Settings.ACTION_TTS_SETTINGS);
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            context.startActivity(i);
+        }catch(Exception ignored){}
+    }
+
+    public boolean isReady(){return ready;}
 
     public void shutdown(){
         if(tts!=null){
             tts.stop();
             tts.shutdown();
+            tts=null;
+            ready=false;
         }
     }
 }
