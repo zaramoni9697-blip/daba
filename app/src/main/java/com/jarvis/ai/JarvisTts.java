@@ -1,10 +1,34 @@
 package com.jarvis.ai;
+
 import android.content.Context;
 import android.speech.tts.TextToSpeech;
+import android.speech.tts.UtteranceProgressListener;
 import java.util.Locale;
+
 public class JarvisTts {
     private TextToSpeech tts;
-    public JarvisTts(Context c){tts=new TextToSpeech(c,status->{if(status==TextToSpeech.SUCCESS)tts.setLanguage(new Locale("bn","BD"));});}
+    private boolean ready=false;
+    private String pending=null;
+
+    public JarvisTts(Context c){
+        tts=new TextToSpeech(c.getApplicationContext(),status->{
+            if(status==TextToSpeech.SUCCESS){
+                ready=true;
+                setBestLanguage();
+                if(pending!=null){
+                    String p=pending;
+                    pending=null;
+                    speak(p);
+                }
+            }
+        });
+        tts.setOnUtteranceProgressListener(new UtteranceProgressListener(){
+            public void onStart(String id){}
+            public void onDone(String id){}
+            public void onError(String id){}
+        });
+    }
+
     private boolean hasBangla(String text){
         if(text==null)return false;
         int bn=0,latin=0;
@@ -15,14 +39,35 @@ public class JarvisTts {
         }
         return bn>0 && bn>=latin;
     }
-    public void speak(String text){
+
+    private void setBestLanguage(){
         if(tts==null)return;
+        Locale target=new Locale("bn","BD");
+        int r=tts.setLanguage(target);
+        if(r==TextToSpeech.LANG_MISSING_DATA||r==TextToSpeech.LANG_NOT_SUPPORTED)
+            tts.setLanguage(Locale.US);
+    }
+
+    public void speak(String text){
+        if(text==null||text.trim().isEmpty())return;
+        if(tts==null)return;
+        if(!ready){
+            pending=text;
+            return;
+        }
         Locale target=hasBangla(text)?new Locale("bn","BD"):Locale.US;
         int r=tts.setLanguage(target);
         if(r==TextToSpeech.LANG_MISSING_DATA||r==TextToSpeech.LANG_NOT_SUPPORTED){
-            tts.setLanguage(new Locale("bn","BD"));
+            target=Locale.US;
+            tts.setLanguage(target);
         }
         tts.speak(text,TextToSpeech.QUEUE_FLUSH,null,"jarvis");
     }
-    public void shutdown(){if(tts!=null){tts.stop();tts.shutdown();}}
+
+    public void shutdown(){
+        if(tts!=null){
+            tts.stop();
+            tts.shutdown();
+        }
+    }
 }
