@@ -53,18 +53,29 @@ public class MainActivity extends AppCompatActivity {
 
         if(getIntent().getBooleanExtra("wake",false))
             handler.postDelayed(this::listen,700);
-
-        if(mic() && !"false".equals(SecureStore.get(this,"wake_enabled")))
-            handler.postDelayed(this::ensureWakeService,900);
     }
 
     @Override protected void onResume(){
         super.onResume();
-        if(mic() && !"false".equals(SecureStore.get(this,"wake_enabled")))
-            handler.postDelayed(this::ensureWakeService,300);
-        if(continuousVoice && mic() && !recognitionInProgress && !externalAppLaunch)
-            handler.postDelayed(this::listen,500);
+        // The foreground activity owns the microphone. Stop the background
+        // wake recognizer here so two SpeechRecognizers never fight for audio.
+        if(JarvisWakeService.isRunning()){
+            try { stopService(new Intent(this,JarvisWakeService.class)); } catch(Exception ignored) {}
+        }
         externalAppLaunch=false;
+        if(continuousVoice && mic() && !recognitionInProgress)
+            handler.postDelayed(this::listen,500);
+    }
+
+    @Override protected void onPause(){
+        super.onPause();
+        if(isFinishing()) return;
+        // When JARVIS leaves the foreground, hand the microphone to the
+        // background wake listener so "Hey JARVIS" can still work outside.
+        handler.removeCallbacks(this::listen);
+        if(mic() && !"false".equals(SecureStore.get(this,"wake_enabled"))){
+            handler.postDelayed(this::ensureWakeService,350);
+        }
     }
 
     private void ensureWakeService(){
