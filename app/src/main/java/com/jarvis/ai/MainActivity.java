@@ -318,11 +318,11 @@ public class MainActivity extends AppCompatActivity {
             status.setText("Thinking…");
             new Thread(()->{
                 String answer=engine.ask(a.value);
-                if(answer==null || answer.trim().isEmpty()) answer="দুঃখিত, এখন উত্তর তৈরি করতে পারছি না।";
+                final String finalAnswer=(answer==null || answer.trim().isEmpty())?"দুঃখিত, এখন উত্তর তৈরি করতে পারছি না।":answer;
                 runOnUiThread(()->{
                     status.setText("Ready");
-                    subtitle.setText(answer);
-                    if(!"false".equals(SecureStore.get(this,"voice_replies")))tts.speak(answer);
+                    subtitle.setText(finalAnswer);
+                    if(!"false".equals(SecureStore.get(this,"voice_replies")))tts.speak(finalAnswer);
                     restartListening(900);
                 });
             }).start();
