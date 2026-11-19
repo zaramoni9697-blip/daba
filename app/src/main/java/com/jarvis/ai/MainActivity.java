@@ -229,7 +229,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    @Override protected void onWindowFocusChanged(boolean hasFocus){
+    @Override public void onWindowFocusChanged(boolean hasFocus){
         super.onWindowFocusChanged(hasFocus);
         // When the user returns from Voice Settings / Play Store, retry after
         // Android has had time to register the recognition service.
