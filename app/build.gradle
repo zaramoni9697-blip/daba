@@ -32,9 +32,9 @@ android {
     defaultConfig {
         applicationId 'com.jarvis.ai.v124'
         minSdk 23
-        targetSdk 30
-        versionCode 19
-        versionName "1.2.6"
+        targetSdk 33
+        versionCode 20
+        versionName "1.2.7"
     }
 }
 
