@@ -1,5 +1,5 @@
 package com.jarvis.ai;
-import android.content.Context;import android.graphics.*;import android.util.AttributeSet;import android.view.*;import java.util.*;
+import android.content.Context;import android.graphics.*;import android.util.AttributeSet;import android.view.*;import android.os.Handler;import java.util.*;
 public class JarvisOrbView extends View{
 private final Paint p=new Paint(3);private final Random rnd=new Random(7);private final float[] x=new float[650],y=new float[650],z=new float[650],size=new float[650];private float rot;private final Handler h=new Handler();
 public JarvisOrbView(Context c,AttributeSet a){super(c,a);p.setColor(Color.rgb(215,212,220));for(int i=0;i<x.length;i++){double u=rnd.nextDouble()*2-1;double t=rnd.nextDouble()*Math.PI*2;double s=Math.sqrt(1-u*u);x[i]=(float)(s*Math.cos(t));y[i]=(float)(u);z[i]=(float)(s*Math.sin(t));size[i]=1.0f+rnd.nextFloat()*2.6f;}h.post(new Runnable(){public void run(){rot+=0.018f;invalidate();h.postDelayed(this,32);}});}
