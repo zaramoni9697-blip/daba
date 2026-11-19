@@ -27,6 +27,7 @@ public class MainActivity extends AppCompatActivity {
     private boolean recognitionInProgress=false;
     private SpeechRecognizer recognizer;
     private boolean activityVisible=false;
+    private boolean cloudVoiceInProgress=false;
 
     @Override protected void onCreate(Bundle b){
         super.onCreate(b);
@@ -134,7 +135,7 @@ public class MainActivity extends AppCompatActivity {
         recognitionInProgress=true;
         if(!SpeechRecognizer.isRecognitionAvailable(this)){
             recognitionInProgress=false;
-            showSpeechRecognitionUnavailable();
+            listenWithCloudStt();
             return;
         }
         if(recognizer!=null){
@@ -186,6 +187,35 @@ public class MainActivity extends AppCompatActivity {
         status.setVisibility(View.VISIBLE);
         status.setText("Listening…");
         subtitle.setText("বলুন — আমি শুনছি • বাংলা / English");
+    }
+
+    private void listenWithCloudStt(){
+        if(!activityVisible || cloudVoiceInProgress || !mic()) return;
+        String key=SecureStore.get(this,"groq");
+        if(key==null || key.trim().isEmpty()){
+            showSpeechRecognitionUnavailable();
+            return;
+        }
+        cloudVoiceInProgress=true;
+        status.setVisibility(View.VISIBLE);
+        status.setText("Listening…");
+        subtitle.setText("Cloud voice mode • বলুন — আমি শুনছি");
+        new Thread(()->{
+            final String[] result=new String[1];
+            result[0]=JarvisCloudStt.transcribe(this,key.trim());
+            runOnUiThread(()->{
+                cloudVoiceInProgress=false;
+                if(result[0]!=null && !result[0].trim().isEmpty()){
+                    transcript.setText(result[0]);
+                    transcript.setVisibility(View.VISIBLE);
+                    execute(result[0]);
+                }else{
+                    status.setText("Voice input failed");
+                    subtitle.setText("কথা বোঝা যায়নি — আবার চেষ্টা করছি");
+                    handler.postDelayed(this::listen,1000);
+                }
+            });
+        }).start();
     }
 
     private void showSpeechRecognitionUnavailable(){
