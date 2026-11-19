@@ -14,17 +14,18 @@ public class JarvisEngine {
         String result=callProvider(prompt); if(result==null)result="AI service is unavailable. Please check your API settings.";
         memory.add("assistant",result); return result;
     }
+    private String lastError="";
     private String callProvider(String prompt){
         String primary=SecureStore.get(context,"primary"); if(primary==null)primary="Gemini";
         String[] providers={primary,"Gemini","OpenAI-compatible","Groq","Custom"};
         for(String p:providers){
             String key=p.equals("Gemini")?SecureStore.get(context,"gemini"):p.equals("Groq")?SecureStore.get(context,"groq"):p.equals("OpenAI-compatible")?SecureStore.get(context,"openai"):SecureStore.get(context,"custom");
             if(key==null||key.trim().isEmpty())continue;
-            try{if(p.equals("Gemini"))return gemini(key,prompt);return openaiLike(key,prompt,p);}catch(Exception ignored){}
-        } return null;
+            try{if(p.equals("Gemini"))return gemini(key,prompt);return openaiLike(key,prompt,p);}catch(Exception e){lastError=p+" error: "+e.getMessage();}
+        } return lastError.isEmpty()?null:lastError;
     }
     private String gemini(String key,String prompt)throws Exception{
-        URL u=new URL("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key="+key);
+        URL u=new URL("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key="+key);
         HttpURLConnection c=(HttpURLConnection)u.openConnection();c.setRequestMethod("POST");c.setDoOutput(true);c.setRequestProperty("Content-Type","application/json");
         JSONObject body=new JSONObject().put("contents",new JSONArray().put(new JSONObject().put("parts",new JSONArray().put(new JSONObject().put("text",prompt)))));
         write(c,body.toString()); JSONObject r=new JSONObject(read(c));
