@@ -17,12 +17,12 @@ public class JarvisEngine {
     }
 
     public String ask(String user){
-        memory.add("user",user);
+        if(!"false".equals(SecureStore.get(context,"memory_enabled"))) memory.add("user",user);
         String history=memory.context(6);
         String prompt="You are JARVIS, a concise Android voice assistant. Reply in the user's language. Do not claim you performed an action unless the app actually did it.\nRecent context:\n"+history+"\nCurrent user: "+user;
         String result=callProvider(prompt);
         if(result==null) result="AI service is unavailable. Please check your API settings.";
-        memory.add("assistant",result);
+        if(!"false".equals(SecureStore.get(context,"memory_enabled"))) memory.add("assistant",result);
         return result;
     }
 
@@ -39,7 +39,7 @@ public class JarvisEngine {
         String primary=SecureStore.get(context,"primary");
         if(primary==null || primary.trim().isEmpty()) primary="Gemini";
 
-        String[] providers={primary,"Gemini","OpenAI-compatible","Groq","OpenRouter","DeepSeek","Grok","Custom"};
+        String[] providers={"false".equals(SecureStore.get(context,"auto_failover"))?primary:primary,"Gemini","OpenAI-compatible","Groq","OpenRouter","DeepSeek","Grok","Custom"};
 
         java.util.HashSet<String> tried=new java.util.HashSet<>();
         for(String p:providers){
