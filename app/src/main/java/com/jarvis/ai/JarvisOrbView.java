@@ -1,0 +1,7 @@
+package com.jarvis.ai;
+import android.content.Context;import android.graphics.*;import android.util.AttributeSet;import android.view.*;import java.util.*;
+public class JarvisOrbView extends View{
+private final Paint p=new Paint(3);private final Random rnd=new Random(7);private final float[] x=new float[650],y=new float[650],z=new float[650],size=new float[650];private float rot;private final Handler h=new Handler();
+public JarvisOrbView(Context c,AttributeSet a){super(c,a);p.setColor(Color.rgb(215,212,220));for(int i=0;i<x.length;i++){double u=rnd.nextDouble()*2-1;double t=rnd.nextDouble()*Math.PI*2;double s=Math.sqrt(1-u*u);x[i]=(float)(s*Math.cos(t));y[i]=(float)(u);z[i]=(float)(s*Math.sin(t));size[i]=1.0f+rnd.nextFloat()*2.6f;}h.post(new Runnable(){public void run(){rot+=0.018f;invalidate();h.postDelayed(this,32);}});}
+@Override protected void onDraw(Canvas c){super.onDraw(c);float cx=getWidth()/2f,cy=getHeight()/2f;float r=Math.min(getWidth(),getHeight())*0.43f;for(int i=0;i<x.length;i++){double ca=Math.cos(rot),sa=Math.sin(rot);float xx=(float)(x[i]*ca-z[i]*sa),zz=(float)(x[i]*sa+z[i]*ca);float yy=y[i];float depth=(zz+1f)/2f;float px=cx+xx*r,py=cy+yy*r;float alpha=55+170*depth;p.setAlpha((int)alpha);float s=size[i]*(0.65f+0.7f*depth);c.drawCircle(px,py,s,p);}p.setAlpha(255);}
+}
