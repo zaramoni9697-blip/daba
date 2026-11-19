@@ -191,18 +191,50 @@ public class MainActivity extends AppCompatActivity {
     private void showSpeechRecognitionUnavailable(){
         status.setVisibility(View.VISIBLE);
         status.setText("Speech recognition unavailable");
-        subtitle.setText("ফোনে Speech Recognition service পাওয়া যাচ্ছে না");
+        subtitle.setText("Voice service পাওয়া যাচ্ছে না — সেটআপ প্রয়োজন");
+
+        // Some Android 11 builds have no recognition service registered even
+        // though microphone permission is granted. Guide the user directly
+        // to the correct system voice settings, with a Play Store fallback.
         new AlertDialog.Builder(this)
-                .setTitle("Voice Recognition unavailable")
-                .setMessage("Android-এর Speech Recognition service পাওয়া যাচ্ছে না।\n\nSettings খুলে Voice Input / Speech Services চালু বা ইনস্টল করুন।")
+                .setTitle("JARVIS Voice Setup")
+                .setMessage("এই ফোনে Android Speech Recognition service পাওয়া যাচ্ছে না।\n\nপ্রথমে Voice Input / Speech Services চালু করুন। না থাকলে Google Speech Services ইনস্টল করুন।\n\nতারপর JARVIS-এ ফিরে এলে আমি আবার নিজে থেকে listening শুরু করব।")
                 .setNegativeButton("Later", null)
-                .setPositiveButton("Open Settings", (d,w)->{
-                    try{
-                        startActivity(new Intent(Settings.ACTION_VOICE_INPUT_SETTINGS));
-                    }catch(Exception e){
-                        try{ startActivity(new Intent(Settings.ACTION_SETTINGS)); }catch(Exception ignored){}
-                    }
-                }).show();
+                .setNeutralButton("Voice Settings", (d,w)->openVoiceSettings())
+                .setPositiveButton("Install / Update", (d,w)->openSpeechServiceStore())
+                .show();
+    }
+
+    private void openVoiceSettings(){
+        try{
+            startActivity(new Intent(Settings.ACTION_VOICE_INPUT_SETTINGS));
+        }catch(Exception e){
+            try{
+                startActivity(new Intent(Settings.ACTION_SETTINGS));
+            }catch(Exception ignored){}
+        }
+    }
+
+    private void openSpeechServiceStore(){
+        try{
+            Intent i=new Intent(Intent.ACTION_VIEW);
+            i.setData(android.net.Uri.parse("market://details?id=com.google.android.tts"));
+            startActivity(i);
+        }catch(Exception e){
+            try{
+                Intent i=new Intent(Intent.ACTION_VIEW);
+                i.setData(android.net.Uri.parse("https://play.google.com/store/apps/details?id=com.google.android.tts"));
+                startActivity(i);
+            }catch(Exception ignored){}
+        }
+    }
+
+    @Override protected void onWindowFocusChanged(boolean hasFocus){
+        super.onWindowFocusChanged(hasFocus);
+        // When the user returns from Voice Settings / Play Store, retry after
+        // Android has had time to register the recognition service.
+        if(hasFocus && activityVisible && continuousVoice && mic())
+            handler.postDelayed(this::listen,900);
     }
 
     private String speechErrorName(int e){
