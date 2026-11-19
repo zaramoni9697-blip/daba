@@ -39,7 +39,7 @@ public class JarvisEngine {
         String primary=SecureStore.get(context,"primary");
         if(primary==null || primary.trim().isEmpty()) primary="Gemini";
 
-        String[] providers={"false".equals(SecureStore.get(context,"auto_failover"))?primary:primary,"Gemini","OpenAI-compatible","Groq","OpenRouter","DeepSeek","Grok","Custom"};
+        String[] providers="false".equals(SecureStore.get(context,"auto_failover"))?new String[]{primary}:new String[]{primary,"Gemini","OpenAI-compatible","Groq","OpenRouter","DeepSeek","Grok","Custom"};
 
         java.util.HashSet<String> tried=new java.util.HashSet<>();
         for(String p:providers){
