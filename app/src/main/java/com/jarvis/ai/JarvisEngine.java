@@ -9,7 +9,7 @@ public class JarvisEngine {
     private final Context context; private final JarvisMemory memory;
     public JarvisEngine(Context c){context=c.getApplicationContext();memory=new JarvisMemory(c);}
     public String ask(String user){
-        memory.add("user",user); String history=memory.context(12);
+        memory.add("user",user); String history=memory.context(6);
         String prompt="You are JARVIS, a concise Android voice assistant. Reply in the user's language. Do not claim you performed an action unless the app actually did it.\nRecent context:\n"+history+"\nCurrent user: "+user;
         String result=callProvider(prompt); if(result==null)result="AI service is unavailable. Please check your API settings.";
         memory.add("assistant",result); return result;
@@ -25,9 +25,9 @@ public class JarvisEngine {
         } return lastError.isEmpty()?null:lastError;
     }
     private String gemini(String key,String prompt)throws Exception{
-        URL u=new URL("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key="+key);
-        HttpURLConnection c=(HttpURLConnection)u.openConnection();c.setRequestMethod("POST");c.setDoOutput(true);c.setRequestProperty("Content-Type","application/json");
-        JSONObject body=new JSONObject().put("contents",new JSONArray().put(new JSONObject().put("parts",new JSONArray().put(new JSONObject().put("text",prompt)))));
+        URL u=new URL("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key="+key);
+        HttpURLConnection c=(HttpURLConnection)u.openConnection();c.setRequestMethod("POST");c.setDoOutput(true);c.setConnectTimeout(8000);c.setReadTimeout(20000);c.setRequestProperty("Content-Type","application/json");
+        JSONObject body=new JSONObject().put("contents",new JSONArray().put(new JSONObject().put("parts",new JSONArray().put(new JSONObject().put("text",prompt))))).put("generationConfig",new JSONObject().put("maxOutputTokens",256).put("thinkingConfig",new JSONObject().put("thinkingLevel","MINIMAL")));
         write(c,body.toString()); JSONObject r=new JSONObject(read(c));
         return r.getJSONArray("candidates").getJSONObject(0).getJSONObject("content").getJSONArray("parts").getJSONObject(0).getString("text");
     }
