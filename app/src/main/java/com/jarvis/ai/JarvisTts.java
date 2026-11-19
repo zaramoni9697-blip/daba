@@ -74,7 +74,7 @@ public class JarvisTts {
 
     public void openVoiceSettings(){
         try{
-            Intent i=new Intent(Settings.ACTION_TTS_SETTINGS);
+            Intent i=new Intent("com.android.settings.TTS_SETTINGS");
             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             context.startActivity(i);
         }catch(Exception ignored){}
