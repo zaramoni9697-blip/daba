@@ -10,6 +10,8 @@
     <application
         android:theme="@style/AppTheme"
         android:label="JARVIS"
+        android:icon="@drawable/jarvis_icon"
+        android:roundIcon="@drawable/jarvis_icon"
         android:allowBackup="true"
         android:supportsRtl="true">
 
@@ -20,21 +22,15 @@
             </intent-filter>
         </activity>
 
-        <service
-            android:name=".JarvisWakeService"
-            android:exported="false"
-            android:foregroundServiceType="microphone"/>
+        <service android:name=".JarvisWakeService" android:exported="false" android:foregroundServiceType="microphone"/>
 
-        <service
-            android:name=".JarvisAccessibilityService"
+        <service android:name=".JarvisAccessibilityService"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
             android:exported="false">
             <intent-filter>
                 <action android:name="android.accessibilityservice.AccessibilityService"/>
             </intent-filter>
-            <meta-data
-                android:name="android.accessibilityservice"
-                android:resource="@xml/accessibility_service_config"/>
+            <meta-data android:name="android.accessibilityservice" android:resource="@xml/accessibility_service_config"/>
         </service>
     </application>
 </manifest>
