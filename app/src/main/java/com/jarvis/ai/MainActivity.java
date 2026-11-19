@@ -133,6 +133,12 @@ public class MainActivity extends AppCompatActivity {
     private void listen(){
         if(!activityVisible || !continuousVoice || recognitionInProgress || !mic()) return;
         recognitionInProgress=true;
+        String groqKey=SecureStore.get(this,"groq");
+        if(groqKey!=null && !groqKey.trim().isEmpty()){
+            recognitionInProgress=false;
+            listenWithCloudStt();
+            return;
+        }
         if(!SpeechRecognizer.isRecognitionAvailable(this)){
             recognitionInProgress=false;
             listenWithCloudStt();
@@ -211,6 +217,8 @@ public class MainActivity extends AppCompatActivity {
                     execute(result[0]);
                 }else{
                     status.setText("Voice input failed");
+                    transcript.setText("কথা ঠিকমতো শনাক্ত করা যায়নি");
+                    transcript.setVisibility(View.VISIBLE);
                     subtitle.setText("কথা বোঝা যায়নি — আবার চেষ্টা করছি");
                     handler.postDelayed(this::listen,1000);
                 }
@@ -310,6 +318,7 @@ public class MainActivity extends AppCompatActivity {
             status.setText("Thinking…");
             new Thread(()->{
                 String answer=engine.ask(a.value);
+                if(answer==null || answer.trim().isEmpty()) answer="দুঃখিত, এখন উত্তর তৈরি করতে পারছি না।";
                 runOnUiThread(()->{
                     status.setText("Ready");
                     subtitle.setText(answer);
