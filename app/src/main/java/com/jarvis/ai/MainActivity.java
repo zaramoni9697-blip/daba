@@ -4,6 +4,7 @@ import android.Manifest;
 import android.app.*;
 import android.content.*;
 import android.content.pm.PackageManager;
+import android.provider.Settings;
 import android.os.*;
 import android.speech.*;
 import android.view.View;
@@ -133,8 +134,7 @@ public class MainActivity extends AppCompatActivity {
         recognitionInProgress=true;
         if(!SpeechRecognizer.isRecognitionAvailable(this)){
             recognitionInProgress=false;
-            status.setText("Speech recognition unavailable");
-            handler.postDelayed(this::listen,1500);
+            showSpeechRecognitionUnavailable();
             return;
         }
         if(recognizer!=null){
@@ -154,10 +154,11 @@ public class MainActivity extends AppCompatActivity {
             }
             public void onError(int e){
                 recognitionInProgress=false;
-                // Common Android recognition errors are transient; retry only
-                // while the JARVIS activity is actually visible.
-                if(activityVisible && continuousVoice)
-                    handler.postDelayed(MainActivity.this::listen,700);
+                if(activityVisible && continuousVoice){
+                    status.setVisibility(View.VISIBLE);
+                    status.setText("Voice error: "+speechErrorName(e)+" ("+e+")");
+                    handler.postDelayed(MainActivity.this::listen,900);
+                }
             }
             public void onReadyForSpeech(Bundle b){status.setText("Listening…");}
             public void onBeginningOfSpeech(){}
@@ -185,6 +186,40 @@ public class MainActivity extends AppCompatActivity {
         status.setVisibility(View.VISIBLE);
         status.setText("Listening…");
         subtitle.setText("বলুন — আমি শুনছি • বাংলা / English");
+    }
+
+    private void showSpeechRecognitionUnavailable(){
+        status.setVisibility(View.VISIBLE);
+        status.setText("Speech recognition unavailable");
+        subtitle.setText("ফোনে Speech Recognition service পাওয়া যাচ্ছে না");
+        new AlertDialog.Builder(this)
+                .setTitle("Voice Recognition unavailable")
+                .setMessage("Android-এর Speech Recognition service পাওয়া যাচ্ছে না।\n\nSettings খুলে Voice Input / Speech Services চালু বা ইনস্টল করুন।")
+                .setNegativeButton("Later", null)
+                .setPositiveButton("Open Settings", (d,w)->{
+                    try{
+                        startActivity(new Intent(Settings.ACTION_VOICE_INPUT_SETTINGS));
+                    }catch(Exception e){
+                        try{ startActivity(new Intent(Settings.ACTION_SETTINGS)); }catch(Exception ignored){}
+                    }
+                }).show();
+    }
+
+    private String speechErrorName(int e){
+        switch(e){
+            case SpeechRecognizer.ERROR_AUDIO: return "AUDIO";
+            case SpeechRecognizer.ERROR_CLIENT: return "CLIENT";
+            case SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS: return "PERMISSION";
+            case SpeechRecognizer.ERROR_NETWORK: return "NETWORK";
+            case SpeechRecognizer.ERROR_NETWORK_TIMEOUT: return "NETWORK_TIMEOUT";
+            case SpeechRecognizer.ERROR_NO_MATCH: return "NO_MATCH";
+            case SpeechRecognizer.ERROR_RECOGNIZER_BUSY: return "RECOGNIZER_BUSY";
+            case SpeechRecognizer.ERROR_SERVER: return "SERVER";
+            case SpeechRecognizer.ERROR_SPEECH_TIMEOUT: return "SPEECH_TIMEOUT";
+            case SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED: return "LANGUAGE_NOT_SUPPORTED";
+            case SpeechRecognizer.ERROR_LANGUAGE_UNAVAILABLE: return "LANGUAGE_UNAVAILABLE";
+            default: return "UNKNOWN";
+        }
     }
 
     private void execute(String cmd){
