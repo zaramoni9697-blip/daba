@@ -17,9 +17,9 @@ public class JarvisEngine {
     private String lastError="";
     private String callProvider(String prompt){
         String primary=SecureStore.get(context,"primary"); if(primary==null)primary="Gemini";
-        String[] providers={primary,"Gemini","OpenAI-compatible","Groq","Custom"};
+        String[] providers={primary,"Gemini","OpenAI-compatible","Groq","OpenRouter","DeepSeek","Grok","Custom"};
         for(String p:providers){
-            String key=p.equals("Gemini")?SecureStore.get(context,"gemini"):p.equals("Groq")?SecureStore.get(context,"groq"):p.equals("OpenAI-compatible")?SecureStore.get(context,"openai"):SecureStore.get(context,"custom");
+            String key=p.equals("Gemini")?SecureStore.get(context,"gemini"):p.equals("Groq")?SecureStore.get(context,"groq"):p.equals("OpenAI-compatible")?SecureStore.get(context,"openai"):p.equals("OpenRouter")?SecureStore.get(context,"openrouter"):p.equals("DeepSeek")?SecureStore.get(context,"deepseek"):p.equals("Grok")?SecureStore.get(context,"xai"):SecureStore.get(context,"custom");
             if(key==null||key.trim().isEmpty())continue;
             try{if(p.equals("Gemini"))return gemini(key,prompt);return openaiLike(key,prompt,p);}catch(Exception e){lastError=p+" error: "+e.getMessage();}
         } return lastError.isEmpty()?null:lastError;
@@ -32,15 +32,16 @@ public class JarvisEngine {
         return r.getJSONArray("candidates").getJSONObject(0).getJSONObject("content").getJSONArray("parts").getJSONObject(0).getString("text");
     }
     private String openaiLike(String key,String prompt,String provider)throws Exception{
-        String endpoint=provider.equals("Custom")?SecureStore.get(context,"custom_endpoint"):provider.equals("Groq")?"https://api.groq.com/openai/v1/chat/completions":"https://api.openai.com/v1/chat/completions";
+        String endpoint=provider.equals("Custom")?SecureStore.get(context,"custom_endpoint"):provider.equals("Groq")?"https://api.groq.com/openai/v1/chat/completions":provider.equals("OpenRouter")?"https://openrouter.ai/api/v1/chat/completions":provider.equals("DeepSeek")?"https://api.deepseek.com/chat/completions":provider.equals("Grok")?"https://api.x.ai/v1/chat/completions":"https://api.openai.com/v1/chat/completions";
         if(endpoint==null||endpoint.trim().isEmpty())endpoint="https://api.openai.com/v1/chat/completions";
         URL u=new URL(endpoint);HttpURLConnection c=(HttpURLConnection)u.openConnection();c.setRequestMethod("POST");c.setDoOutput(true);c.setRequestProperty("Content-Type","application/json");c.setRequestProperty("Authorization","Bearer "+key);
-        String model=provider.equals("Groq")?"llama-3.3-70b-versatile":"gpt-4o-mini";
+        String model=provider.equals("Groq")?"llama-3.3-70b-versatile":provider.equals("OpenRouter")?getModel("openrouter","openai/gpt-6.2-sol"):provider.equals("DeepSeek")?getModel("deepseek","deepseek-flash"):provider.equals("Grok")?getModel("xai","grok-4.7"):getModel("openai","gpt-4o-mini");
         JSONObject body=new JSONObject().put("model",model).put("messages",new JSONArray().put(new JSONObject().put("role","user").put("content",prompt)));
         write(c,body.toString());JSONObject r=new JSONObject(read(c));
         return r.getJSONArray("choices").getJSONObject(0).getJSONObject("message").getString("content");
     }
     private void write(HttpURLConnection c,String s)throws Exception{try(OutputStream o=c.getOutputStream()){o.write(s.getBytes("UTF-8"));}}
     private String read(HttpURLConnection c)throws Exception{InputStream in=c.getResponseCode()<400?c.getInputStream():c.getErrorStream();try(BufferedReader b=new BufferedReader(new InputStreamReader(in))){StringBuilder s=new StringBuilder(); String l;while((l=b.readLine())!=null)s.append(l);return s.toString();}}
+    private String getModel(String key,String def){String v=SecureStore.get(context,key+"_model");return v==null||v.trim().isEmpty()?def:v.trim();}
     public JarvisMemory memory(){return memory;}
 }
