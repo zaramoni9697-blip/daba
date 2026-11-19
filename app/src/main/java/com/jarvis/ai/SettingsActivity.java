@@ -116,7 +116,7 @@ public class SettingsActivity extends AppCompatActivity {
         voiceReplies=new Switch(this);voiceReplies.setText("JARVIS voice replies / TTS");voiceReplies.setTextColor(Color.WHITE);voiceReplies.setTextSize(14);voiceReplies.setChecked(!"false".equals(SecureStore.get(this,"voice_replies")));c.addView(voiceReplies);
         wakeState=tv(JarvisWakeService.isRunning()?"● WAKE LISTENER ACTIVE":"○ WAKE LISTENER OFF",12,CYAN);wakeState.setPadding(0,dp(6),0,dp(5));c.addView(wakeState);
         Button wake=action("◉  START / STOP HEY JARVIS",Color.rgb(28,45,52));add(c,wake,52);wake.setOnClickListener(v->{if(JarvisWakeService.isRunning()){stopService(new Intent(this,JarvisWakeService.class));SecureStore.put(this,"wake_enabled","false");}else{SecureStore.put(this,"wake_enabled","true");startForegroundService(new Intent(this,JarvisWakeService.class));}updateWakeState();});
-        TextView hint=tv("Wake Listener keeps a microphone foreground service running so “Hey JARVIS” can work outside the app. Android may still stop it if battery restrictions are enabled.",11,MUTED);hint.setPadding(0,dp(5),0,dp(4));c.addView(hint);
+        TextView hint=tv("If Android Speech Recognition is unavailable, JARVIS can use Groq Whisper cloud voice input. Save your Groq API key in AI / API mode. Wake Listener keeps a microphone foreground service running so “Hey JARVIS” can work outside the app.",11,MUTED);hint.setPadding(0,dp(5),0,dp(4));c.addView(hint);
         voicePanel.addView(c);content.addView(voicePanel);
     }
 
