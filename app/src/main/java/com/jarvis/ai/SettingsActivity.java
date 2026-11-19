@@ -1,5 +1,6 @@
 package com.jarvis.ai;
 
+import android.app.AlertDialog;
 import android.content.*;
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
@@ -12,7 +13,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 public class SettingsActivity extends AppCompatActivity {
     private LinearLayout root;
-    private Spinner provider;
+    private Spinner provider, speechLanguage;
     private EditText gemini, openai, groq, openrouter, deepseek, xai, custom, endpoint;
     private EditText openrouterModel, deepseekModel, xaiModel;
     private Switch autoFailover, voiceReplies, saveMemory;
@@ -72,7 +73,7 @@ public class SettingsActivity extends AppCompatActivity {
         TextView info=tv("Choose your primary brain. API keys stay encrypted on this device.",13,Color.rgb(190,186,200));info.setPadding(0,dp(5),0,dp(8));status.addView(info);
         provider=new Spinner(this); provider.setAdapter(new ArrayAdapter<String>(this,android.R.layout.simple_spinner_dropdown_item,providers));
         String saved=SecureStore.get(this,"primary");if(saved!=null)for(int i=0;i<providers.length;i++)if(providers[i].equals(saved))provider.setSelection(i);
-        status.addView(provider,new LinearLayout.LayoutParams(-1,dp(48)));root.addView(status);
+        status.addView(provider,new LinearLayout.LayoutParams(-1,dp(48)));\n        TextView speechLabel=section("Speech language");status.addView(speechLabel);\n        speechLanguage=new Spinner(this);String[] langs={"AUTO • বাংলা + English","bn-BD • বাংলা","en-US • English"};speechLanguage.setAdapter(new ArrayAdapter<String>(this,android.R.layout.simple_spinner_dropdown_item,langs));\n        String sl=SecureStore.get(this,"speech_language");if("bn-BD".equals(sl))speechLanguage.setSelection(1);else if("en-US".equals(sl))speechLanguage.setSelection(2);else speechLanguage.setSelection(0);\n        status.addView(speechLanguage,new LinearLayout.LayoutParams(-1,dp(48)));root.addView(status);
 
         LinearLayout keys=card();keys.addView(section("Encrypted API vault"));
         gemini=key("Gemini API key","gemini");addField(keys,gemini);
@@ -119,7 +120,7 @@ public class SettingsActivity extends AppCompatActivity {
     private void saveAll(){
         putIf(gemini,"gemini");putIf(openai,"openai");putIf(groq,"groq");putIf(openrouter,"openrouter");putIf(deepseek,"deepseek");putIf(xai,"xai");putIf(custom,"custom");
         putText(openrouterModel,"openrouter_model");putText(deepseekModel,"deepseek_model");putText(xaiModel,"xai_model");putText(endpoint,"custom_endpoint");
-        SecureStore.put(this,"primary",provider.getSelectedItem().toString());
+        SecureStore.put(this,"primary",provider.getSelectedItem().toString());String selectedSpeech=speechLanguage.getSelectedItemPosition()==1?"bn-BD":speechLanguage.getSelectedItemPosition()==2?"en-US":"AUTO";SecureStore.put(this,"speech_language",selectedSpeech);
         SecureStore.put(this,"auto_failover",String.valueOf(autoFailover.isChecked()));
         SecureStore.put(this,"voice_replies",String.valueOf(voiceReplies.isChecked()));
         SecureStore.put(this,"memory_enabled",String.valueOf(saveMemory.isChecked()));
