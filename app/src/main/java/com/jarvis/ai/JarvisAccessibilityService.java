@@ -6,6 +6,16 @@ import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.os.Bundle;
 import java.util.List;
+import android.os.Build;
+import android.view.Display;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.hardware.HardwareBuffer;
+import android.media.Image;
+import android.os.Environment;
+import android.provider.MediaStore;
+import android.content.ContentValues;
+import java.io.OutputStream;
 
 public class JarvisAccessibilityService extends AccessibilityService {
     private static JarvisAccessibilityService instance;
@@ -39,6 +49,24 @@ public class JarvisAccessibilityService extends AccessibilityService {
         if(focused==null||!focused.isEditable())return false;
         Bundle args=new Bundle();args.putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE,text);
         return focused.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT,args);
+    }
+    public static boolean takeScreenshotToGallery(final android.content.Context context){
+        if(instance==null||Build.VERSION.SDK_INT<30)return false;
+        try{
+            instance.takeScreenshot(Display.DEFAULT_DISPLAY, context.getMainExecutor(), new TakeScreenshotCallback(){
+                @Override public void onSuccess(ScreenshotResult result){
+                    try{
+                        HardwareBuffer hb=result.getHardwareBuffer(); Bitmap bm=Bitmap.wrapHardwareBuffer(hb,result.getColorSpace());
+                        if(bm==null){hb.close();return;}
+                        ContentValues v=new ContentValues();v.put(MediaStore.Images.Media.DISPLAY_NAME,"JARVIS_"+System.currentTimeMillis()+".png");v.put(MediaStore.Images.Media.MIME_TYPE,"image/png");v.put(MediaStore.Images.Media.RELATIVE_PATH,Environment.DIRECTORY_PICTURES+"/JARVIS");
+                        android.net.Uri uri=context.getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI,v);
+                        if(uri!=null){OutputStream os=context.getContentResolver().openOutputStream(uri);bm.compress(Bitmap.CompressFormat.PNG,100,os);if(os!=null)os.close();}
+                        bm.recycle();hb.close();
+                    }catch(Exception ignored){}
+                }
+                @Override public void onFailure(int errorCode){}
+            }); return true;
+        }catch(Exception e){return false;}
     }
     public static boolean scroll(boolean down){
         if(instance==null)return false; Path p=new Path();
