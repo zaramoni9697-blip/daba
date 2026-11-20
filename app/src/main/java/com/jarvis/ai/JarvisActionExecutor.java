@@ -2,7 +2,13 @@ package com.jarvis.ai;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.media.AudioManager;
 import android.provider.Settings;
+import android.net.Uri;
+import android.content.Intent;
+import android.provider.Settings;
+import android.provider.ContactsContract;
+import android.database.Cursor;
 import java.util.Locale;
 
 public class JarvisActionExecutor {
@@ -17,9 +23,28 @@ public class JarvisActionExecutor {
             case QUICK_SETTINGS:return JarvisAccessibilityService.quickSettings()?"Quick settings opened.":needAccessibility();
             case SCROLL_DOWN:return JarvisAccessibilityService.scroll(true)?"Scrolled down.":needAccessibility();
             case SCROLL_UP:return JarvisAccessibilityService.scroll(false)?"Scrolled up.":needAccessibility();
+            case VOLUME_UP:return volume(AudioManager.ADJUST_RAISE);
+            case VOLUME_DOWN:return volume(AudioManager.ADJUST_LOWER);
+            case MUTE:return volume(AudioManager.ADJUST_MUTE);
+            case CLICK_TEXT:return JarvisAccessibilityService.clickText(a.value)?"Clicked "+a.value+".":needAccessibility();
+            case TYPE_TEXT:return JarvisAccessibilityService.typeText(a.value)?"Typed it.":needAccessibility();
             case OPEN_APP:return openApp(a.value);
             default:return "Action is handled by the command/AI layer.";
         }
+    }
+    private String volume(int direction){
+        AudioManager am=(AudioManager)context.getSystemService(Context.AUDIO_SERVICE);
+        if(am==null)return "Volume control unavailable.";
+        am.adjustStreamVolume(AudioManager.STREAM_MUSIC,direction,AudioManager.FLAG_SHOW_UI);
+        return direction==AudioManager.ADJUST_MUTE?"Muted.":direction==AudioManager.ADJUST_RAISE?"Volume increased.":"Volume decreased.";
+    }
+    private String sendSms(String raw){
+        String text=raw==null?"" : raw.trim();
+        Intent i=new Intent(Intent.ACTION_SENDTO);
+        i.setData(Uri.parse("smsto:"));
+        i.putExtra("sms_body",text);
+        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        try{context.startActivity(i);return "SMS composer opened. Please review and send.";}catch(Exception e){return "SMS app unavailable.";}
     }
     private String needAccessibility(){
         context.startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
@@ -49,6 +74,11 @@ public class JarvisActionExecutor {
         if(s.contains("messenger"))return installed("com.facebook.orca");
         if(s.contains("whatsapp")||s.contains("হোয়াটসঅ্যাপ")||s.contains("হোয়াটসঅ্যাপ"))return installed("com.whatsapp");
         if(s.contains("telegram"))return installed("org.telegram.messenger");
+        if(s.contains("instagram"))return installed("com.instagram.android");
+        if(s.contains("chrome"))return installed("com.android.chrome");
+        if(s.contains("camera"))return installed("com.android.camera");
+        if(s.contains("gallery")){String p=installed("com.google.android.apps.photos");if(p!=null)return p;return installed("com.android.gallery3d");}
+        if(s.contains("files")){String p=installed("com.google.android.documentsui");if(p!=null)return p;return installed("com.google.android.apps.nbu.files");}
         if(s.contains("settings")||s.contains("সেটিংস"))return installed("com.android.settings");
         return null;
     }
