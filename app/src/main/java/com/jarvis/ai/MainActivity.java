@@ -293,6 +293,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void run(JarvisAction a){
+        if(a.type==JarvisAction.Type.CALL && ContextCompat.checkSelfPermission(this,Manifest.permission.CALL_PHONE)!=PackageManager.PERMISSION_GRANTED){
+            ActivityCompat.requestPermissions(this,new String[]{Manifest.permission.CALL_PHONE},61);
+            status.setText("Call permission required");
+            return;
+        }
         if(a.type==JarvisAction.Type.OPEN_APP){
             externalAppLaunch=true;
             String result=executor.execute(a);
