@@ -3,7 +3,7 @@ package com.jarvis.ai;
 import android.content.Context;
 import android.content.Intent;
 import android.provider.Settings;
-import android.speech.tts.TextToSpeech;
+import android.speech.tts.TextToSpeech;\nimport android.media.AudioAttributes;
 import android.widget.Toast;
 import java.util.Locale;
 
@@ -23,7 +23,7 @@ public class JarvisTts {
             if(status==TextToSpeech.SUCCESS){
                 ready=true;
                 tts.setSpeechRate(0.95f);
-                tts.setPitch(1.0f);
+                tts.setPitch(1.0f);\n                try{\n                    tts.setAudioAttributes(new AudioAttributes.Builder()\n                            .setUsage(AudioAttributes.USAGE_ASSISTANCE_ACCESSIBILITY)\n                            .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)\n                            .build());\n                }catch(Exception ignored){}
                 if(pending!=null){
                     String p=pending;
                     pending=null;
