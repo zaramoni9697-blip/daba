@@ -83,7 +83,7 @@ public final class JarvisCloudStt {
         c.setRequestProperty("Content-Type","multipart/form-data; boundary="+boundary);
         try(DataOutputStream o=new DataOutputStream(c.getOutputStream())){
             part(o,boundary,"model","whisper-large-v3-turbo");
-            part(o,boundary,"language","bn");
+            part(o,boundary,"prompt","JARVIS voice command. Preserve Bengali and English words exactly. Common words: hello, hey jarvis, open, Facebook, YouTube, settings, home, back, volume, Wi-Fi.");
             o.writeBytes("--"+boundary+"\r\n");
             o.writeBytes("Content-Disposition: form-data; name=\"file\"; filename=\"voice.wav\"\r\n");
             o.writeBytes("Content-Type: audio/wav\r\n\r\n");
