@@ -20,6 +20,12 @@ public class JarvisCommandRouter {
         if(s.contains("brightness down")||s.contains("brightness কমাও")||s.contains("ব্রাইটনেস কমাও")||s.contains("উজ্জ্বলতা কমাও"))return action(JarvisAction.Type.BRIGHTNESS_DOWN,null);
         if(s.contains("take screenshot")||s.contains("screenshot নাও")||s.contains("স্ক্রিনশট নাও")||s.contains("স্ক্রিনশট"))return action(JarvisAction.Type.SCREENSHOT,null);
         if(s.contains("read notifications")||s.contains("notification read")||s.contains("নোটিফিকেশন পড়ো")||s.contains("নোটিফিকেশন পড়ো"))return action(JarvisAction.Type.READ_NOTIFICATIONS,null);
+        if(s.contains("wi-fi")||s.contains("wifi")||s.contains("ওয়াইফাই")||s.contains("ওয়াই-ফাই"))return action(JarvisAction.Type.WIFI_SETTINGS,null);
+        if(s.contains("bluetooth")||s.contains("ব্লুটুথ"))return action(JarvisAction.Type.BLUETOOTH_SETTINGS,null);
+        if(s.contains("mobile network")||s.contains("mobile data")||s.contains("মোবাইল নেটওয়ার্ক")||s.contains("মোবাইল ডাটা"))return action(JarvisAction.Type.MOBILE_NETWORK_SETTINGS,null);
+        if(s.contains("airplane mode")||s.contains("airplane")||s.contains("ফ্লাইট মোড")||s.contains("এয়ারপ্লেন মোড"))return action(JarvisAction.Type.AIRPLANE_MODE_SETTINGS,null);
+        if(s.contains("whatsapp")&& (s.contains("message")||s.contains("মেসেজ")))return action(JarvisAction.Type.WHATSAPP_MESSAGE,raw);
+        if(s.contains("messenger")&& (s.contains("message")||s.contains("মেসেজ")))return action(JarvisAction.Type.MESSENGER_MESSAGE,raw);
         if(s.contains("volume down")||s.contains("শব্দ কমাও")||s.contains("ভলিউম কমাও"))return new JarvisAction(JarvisAction.Type.ASK_AI,raw,false);
         if(s.startsWith("call ")||s.startsWith("কল ")){String n=s.replaceFirst("^(call|কল)\\s*","");return new JarvisAction(JarvisAction.Type.CALL,n,true);}
         if(s.startsWith("sms ")||s.startsWith("text ")||s.startsWith("মেসেজ ")){String n=s.replaceFirst("^(sms|text|মেসেজ)\\s*","");return new JarvisAction(JarvisAction.Type.SMS,n,true);}
