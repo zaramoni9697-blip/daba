@@ -24,12 +24,31 @@ public final class JarvisCloudStt {
             try(FileOutputStream out=new FileOutputStream(wav)){
                 writeHeader(out,0,rate,1,16);
                 record.startRecording();
-                long end=System.currentTimeMillis()+6500;
+                long start=System.currentTimeMillis();
+                long maxEnd=start+9000;
+                long speechStarted=0;
+                long lastVoice=start;
                 byte[] b=new byte[4096]; int total=0;
-                while(System.currentTimeMillis()<end){
+                while(System.currentTimeMillis()<maxEnd){
                     int n=record.read(b,0,b.length);
-                    if(n>0){out.write(b,0,n);total+=n;}
+                    if(n>0){
+                        out.write(b,0,n);total+=n;
+                        long sum=0;
+                        for(int p=0;p+1<n;p+=2){
+                            int lo=b[p]&0xff, hi=b[p+1];
+                            short sample=(short)((hi<<8)|lo);
+                            sum+=Math.abs((int)sample);
+                        }
+                        double avg=sum/Math.max(1,n/2);
+                        long now=System.currentTimeMillis();
+                        if(avg>900){
+                            if(speechStarted==0)speechStarted=now;
+                            lastVoice=now;
+                        }
+                        if(speechStarted>0 && now-lastVoice>1200 && now-speechStarted>900)break;
+                    }
                 }
+                if(speechStarted==0 || total<rate*2) return null;
                 record.stop();
                 try(RandomAccessFile raf=new RandomAccessFile(wav,"rw")){raf.seek(0);writeHeader(raf,total,rate,1,16);}
             }
