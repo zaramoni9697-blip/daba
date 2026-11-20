@@ -8,6 +8,7 @@ import android.net.Uri;
 import android.content.Intent;
 import android.provider.Settings;
 import android.provider.ContactsContract;
+import android.Manifest;
 import android.database.Cursor;
 import java.util.Locale;
 
@@ -26,6 +27,7 @@ public class JarvisActionExecutor {
             case VOLUME_UP:return volume(AudioManager.ADJUST_RAISE);
             case VOLUME_DOWN:return volume(AudioManager.ADJUST_LOWER);
             case MUTE:return volume(AudioManager.ADJUST_MUTE);
+            case CALL:return callContactOrNumber(a.value);
             case CLICK_TEXT:return JarvisAccessibilityService.clickText(a.value)?"Clicked "+a.value+".":needAccessibility();
             case TYPE_TEXT:return JarvisAccessibilityService.typeText(a.value)?"Typed it.":needAccessibility();
             case OPEN_APP:return openApp(a.value);
@@ -38,6 +40,35 @@ public class JarvisActionExecutor {
         am.adjustStreamVolume(AudioManager.STREAM_MUSIC,direction,AudioManager.FLAG_SHOW_UI);
         return direction==AudioManager.ADJUST_MUTE?"Muted.":direction==AudioManager.ADJUST_RAISE?"Volume increased.":"Volume decreased.";
     }
+    private String callContactOrNumber(String raw){
+        String q=raw==null?"":raw.trim();
+        if(q.isEmpty())return "Please tell me the contact or phone number.";
+        String number=q.replaceAll("[^0-9+]", "");
+        if(number.length()<6){
+            Cursor c=null;
+            try{
+                c=context.getContentResolver().query(
+                        ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
+                        new String[]{ContactsContract.CommonDataKinds.Phone.NUMBER},
+                        ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME+" LIKE ?",
+                        new String[]{"%"+q+"%"},
+                        null);
+                if(c!=null&&c.moveToFirst())number=c.getString(0);
+            }catch(Exception ignored){} finally{if(c!=null)c.close();}
+        }
+        if(number==null||number.trim().isEmpty())return "I couldn't find that contact.";
+        try{
+            Intent i=new Intent(Intent.ACTION_CALL,Uri.parse("tel:"+Uri.encode(number)));
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            context.startActivity(i);
+            return "Calling "+q+".";
+        }catch(SecurityException ex){
+            return "Phone permission is required to place calls.";
+        }catch(Exception ex){
+            return "I couldn't start the call.";
+        }
+    }
+
     private String sendSms(String raw){
         String text=raw==null?"" : raw.trim();
         Intent i=new Intent(Intent.ACTION_SENDTO);
