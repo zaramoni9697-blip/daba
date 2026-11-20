@@ -225,19 +225,11 @@ public class MainActivity extends AppCompatActivity {
 
     private void showSpeechRecognitionUnavailable(){
         status.setVisibility(View.VISIBLE);
-        status.setText("Speech recognition unavailable");
-        subtitle.setText("Voice service পাওয়া যাচ্ছে না — সেটআপ প্রয়োজন");
-
-        // Some Android 11 builds have no recognition service registered even
-        // though microphone permission is granted. Guide the user directly
-        // to the correct system voice settings, with a Play Store fallback.
-        new AlertDialog.Builder(this)
-                .setTitle("JARVIS Voice Setup")
-                .setMessage("এই ফোনে Android Speech Recognition service পাওয়া যাচ্ছে না।\n\nপ্রথমে Voice Input / Speech Services চালু করুন। না থাকলে Google Speech Services ইনস্টল করুন।\n\nতারপর JARVIS-এ ফিরে এলে আমি আবার নিজে থেকে listening শুরু করব।")
-                .setNegativeButton("Later", null)
-                .setNeutralButton("Voice Settings", (d,w)->openVoiceSettings())
-                .setPositiveButton("Install / Update", (d,w)->openSpeechServiceStore())
-                .show();
+        status.setText("Voice service unavailable");
+        subtitle.setText("Groq API key দিন অথবা ফোনের Speech Services চালু করুন");
+        // Do not show a blocking dialog here. The old dialog caused a popup
+        // every time the continuous listener retried.
+        handler.postDelayed(this::listen,2500);
     }
 
     private void openVoiceSettings(){
