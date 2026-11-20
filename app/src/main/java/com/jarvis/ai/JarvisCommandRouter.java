@@ -14,6 +14,12 @@ public class JarvisCommandRouter {
         if(s.contains("volume up")||s.contains("শব্দ বাড়াও")||s.contains("ভলিউম বাড়াও")||s.contains("ভলিউম বাড়িয়ে"))return action(JarvisAction.Type.VOLUME_UP,null);
         if(s.contains("volume down")||s.contains("শব্দ কমাও")||s.contains("ভলিউম কমাও")||s.contains("ভলিউম কমিয়ে"))return action(JarvisAction.Type.VOLUME_DOWN,null);
         if(s.contains("mute")||s.contains("silent")||s.contains("মিউট")||s.contains("সাইলেন্ট"))return action(JarvisAction.Type.MUTE,null);
+        if(s.contains("flashlight on")||s.contains("torch on")||s.contains("টর্চ অন")||s.contains("ফ্ল্যাশলাইট অন")||s.contains("লাইট জ্বালাও"))return action(JarvisAction.Type.FLASHLIGHT_ON,null);
+        if(s.contains("flashlight off")||s.contains("torch off")||s.contains("টর্চ অফ")||s.contains("ফ্ল্যাশলাইট অফ")||s.contains("লাইট বন্ধ করো"))return action(JarvisAction.Type.FLASHLIGHT_OFF,null);
+        if(s.contains("brightness up")||s.contains("brightness বাড়াও")||s.contains("ব্রাইটনেস বাড়াও")||s.contains("উজ্জ্বলতা বাড়াও"))return action(JarvisAction.Type.BRIGHTNESS_UP,null);
+        if(s.contains("brightness down")||s.contains("brightness কমাও")||s.contains("ব্রাইটনেস কমাও")||s.contains("উজ্জ্বলতা কমাও"))return action(JarvisAction.Type.BRIGHTNESS_DOWN,null);
+        if(s.contains("take screenshot")||s.contains("screenshot নাও")||s.contains("স্ক্রিনশট নাও")||s.contains("স্ক্রিনশট"))return action(JarvisAction.Type.SCREENSHOT,null);
+        if(s.contains("read notifications")||s.contains("notification read")||s.contains("নোটিফিকেশন পড়ো")||s.contains("নোটিফিকেশন পড়ো"))return action(JarvisAction.Type.READ_NOTIFICATIONS,null);
         if(s.contains("volume down")||s.contains("শব্দ কমাও")||s.contains("ভলিউম কমাও"))return new JarvisAction(JarvisAction.Type.ASK_AI,raw,false);
         if(s.startsWith("call ")||s.startsWith("কল ")){String n=s.replaceFirst("^(call|কল)\\s*","");return new JarvisAction(JarvisAction.Type.CALL,n,true);}
         if(s.startsWith("sms ")||s.startsWith("text ")||s.startsWith("মেসেজ ")){String n=s.replaceFirst("^(sms|text|মেসেজ)\\s*","");return new JarvisAction(JarvisAction.Type.SMS,n,true);}
