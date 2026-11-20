@@ -40,6 +40,12 @@ public class JarvisActionExecutor {
             case BRIGHTNESS_DOWN:return brightness(-25);
             case SCREENSHOT:return JarvisAccessibilityService.takeScreenshotToGallery(context)?"Screenshot saved.":"Screenshot is unavailable. Enable JARVIS Accessibility Service.";
             case READ_NOTIFICATIONS:return readNotifications();
+            case WIFI_SETTINGS:return openSettings("android.settings.WIFI_SETTINGS");
+            case BLUETOOTH_SETTINGS:return openSettings("android.settings.BLUETOOTH_SETTINGS");
+            case MOBILE_NETWORK_SETTINGS:return openSettings("android.settings.WIRELESS_SETTINGS");
+            case AIRPLANE_MODE_SETTINGS:return openSettings("android.settings.AIRPLANE_MODE_SETTINGS");
+            case WHATSAPP_MESSAGE:return openMessagingApp("com.whatsapp");
+            case MESSENGER_MESSAGE:return openMessagingApp("com.facebook.orca");
             case CALL:return callContactOrNumber(a.value);
             case CLICK_TEXT:return JarvisAccessibilityService.clickText(a.value)?"Clicked "+a.value+".":needAccessibility();
             case TYPE_TEXT:return JarvisAccessibilityService.typeText(a.value)?"Typed it.":needAccessibility();
@@ -47,6 +53,8 @@ public class JarvisActionExecutor {
             default:return "Action is handled by the command/AI layer.";
         }
     }
+    private String openSettings(String action){ try{Intent i=new Intent(action);i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);context.startActivity(i);return "Settings opened.";}catch(Exception e){return "That setting is unavailable.";}}
+    private String openMessagingApp(String pkg){try{Intent i=context.getPackageManager().getLaunchIntentForPackage(pkg);if(i==null)return "That messaging app is not installed.";i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);context.startActivity(i);return "Messaging app opened. I can continue with screen automation when the accessibility service is enabled.";}catch(Exception e){return "Could not open messaging app.";}}
     private String flashlight(boolean on){
         if(Build.VERSION.SDK_INT<23)return "Flashlight is not supported on this Android version.";
         try{
