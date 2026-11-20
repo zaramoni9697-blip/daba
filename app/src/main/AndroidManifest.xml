@@ -7,6 +7,13 @@
     <uses-permission android:name="android.permission.CALL_PHONE"/>
     <uses-permission android:name="android.permission.SEND_SMS"/>
     <uses-permission android:name="android.permission.READ_CONTACTS"/>
+    <queries>
+        <package android:name="com.facebook.katana"/><package android:name="com.facebook.lite"/><package android:name="com.google.android.youtube"/>
+        <package android:name="com.facebook.orca"/><package android:name="com.whatsapp"/><package android:name="org.telegram.messenger"/>
+        <package android:name="com.instagram.android"/><package android:name="com.android.chrome"/><package android:name="com.google.android.apps.photos"/>
+        <package android:name="com.android.gallery3d"/><package android:name="com.google.android.apps.nbu.files"/><package android:name="com.android.documentsui"/>
+        <package android:name="com.android.camera"/><package android:name="com.android.settings"/>
+    </queries>
 
     <application
         android:theme="@style/AppTheme"
