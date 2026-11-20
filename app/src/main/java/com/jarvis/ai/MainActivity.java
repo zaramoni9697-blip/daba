@@ -326,7 +326,8 @@ public class MainActivity extends AppCompatActivity {
         if(a.type==JarvisAction.Type.HOME||a.type==JarvisAction.Type.BACK||a.type==JarvisAction.Type.RECENTS
                 ||a.type==JarvisAction.Type.NOTIFICATIONS||a.type==JarvisAction.Type.QUICK_SETTINGS
                 ||a.type==JarvisAction.Type.SCROLL_UP||a.type==JarvisAction.Type.SCROLL_DOWN
-                ||a.type==JarvisAction.Type.VOLUME_UP||a.type==JarvisAction.Type.VOLUME_DOWN||a.type==JarvisAction.Type.MUTE
+                ||a.type==JarvisAction.Type.VOLUME_UP||a.type==JarvisAction.Type.VOLUME_DOWN||a.type==JarvisAction.Type.MUTE||a.type==JarvisAction.Type.FLASHLIGHT_ON||a.type==JarvisAction.Type.FLASHLIGHT_OFF
+                ||a.type==JarvisAction.Type.BRIGHTNESS_UP||a.type==JarvisAction.Type.BRIGHTNESS_DOWN||a.type==JarvisAction.Type.SCREENSHOT||a.type==JarvisAction.Type.READ_NOTIFICATIONS
                 ||a.type==JarvisAction.Type.CLICK_TEXT||a.type==JarvisAction.Type.TYPE_TEXT)
             result=executor.execute(a);
         else if(a.type==JarvisAction.Type.CALL)
