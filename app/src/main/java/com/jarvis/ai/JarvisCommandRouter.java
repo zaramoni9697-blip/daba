@@ -10,7 +10,9 @@ public class JarvisCommandRouter {
         if(s.contains("notifications")||s.contains("নোটিফিকেশন"))return action(JarvisAction.Type.NOTIFICATIONS,null);
         if(s.contains("quick settings")||s.contains("কুইক সেটিং"))return action(JarvisAction.Type.QUICK_SETTINGS,null);
         if(s.contains("scroll down")||s.contains("নিচে স্ক্রল"))return action(JarvisAction.Type.SCROLL_DOWN,null);
-        if(s.contains("scroll up")||s.contains("উপরে স্ক্রল"))return action(JarvisAction.Type.SCROLL_UP,null);
+        if(s.contains("scroll up")||s.contains("উপরে স্ক্রল")||s.contains("উপরে যাও"))return action(JarvisAction.Type.SCROLL_UP,null);
+        if(s.contains("volume up")||s.contains("শব্দ বাড়াও")||s.contains("ভলিউম বাড়াও"))return new JarvisAction(JarvisAction.Type.ASK_AI,raw,false);
+        if(s.contains("volume down")||s.contains("শব্দ কমাও")||s.contains("ভলিউম কমাও"))return new JarvisAction(JarvisAction.Type.ASK_AI,raw,false);
         if(s.startsWith("call ")||s.startsWith("কল ")){String n=s.replaceFirst("^(call|কল)\\s*","");return new JarvisAction(JarvisAction.Type.CALL,n,true);}
         if(s.startsWith("sms ")||s.startsWith("text ")||s.startsWith("মেসেজ ")){String n=s.replaceFirst("^(sms|text|মেসেজ)\\s*","");return new JarvisAction(JarvisAction.Type.SMS,n,true);}
 
