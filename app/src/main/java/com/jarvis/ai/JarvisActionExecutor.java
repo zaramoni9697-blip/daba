@@ -11,6 +11,13 @@ import android.provider.ContactsContract;
 import android.Manifest;
 import android.database.Cursor;
 import java.util.Locale;
+import android.hardware.camera2.CameraManager;
+import android.os.Build;
+import android.os.Environment;
+import android.provider.MediaStore;
+import android.content.ContentValues;
+import android.graphics.Bitmap;
+import java.io.OutputStream;
 
 public class JarvisActionExecutor {
     private final Context context;
@@ -27,12 +34,36 @@ public class JarvisActionExecutor {
             case VOLUME_UP:return volume(AudioManager.ADJUST_RAISE);
             case VOLUME_DOWN:return volume(AudioManager.ADJUST_LOWER);
             case MUTE:return volume(AudioManager.ADJUST_MUTE);
+            case FLASHLIGHT_ON:return flashlight(true);
+            case FLASHLIGHT_OFF:return flashlight(false);
+            case BRIGHTNESS_UP:return brightness(25);
+            case BRIGHTNESS_DOWN:return brightness(-25);
+            case SCREENSHOT:return JarvisAccessibilityService.takeScreenshotToGallery(context)?"Screenshot saved.":"Screenshot is unavailable. Enable JARVIS Accessibility Service.";
+            case READ_NOTIFICATIONS:return readNotifications();
             case CALL:return callContactOrNumber(a.value);
             case CLICK_TEXT:return JarvisAccessibilityService.clickText(a.value)?"Clicked "+a.value+".":needAccessibility();
             case TYPE_TEXT:return JarvisAccessibilityService.typeText(a.value)?"Typed it.":needAccessibility();
             case OPEN_APP:return openApp(a.value);
             default:return "Action is handled by the command/AI layer.";
         }
+    }
+    private String flashlight(boolean on){
+        if(Build.VERSION.SDK_INT<23)return "Flashlight is not supported on this Android version.";
+        try{
+            CameraManager cm=(CameraManager)context.getSystemService(Context.CAMERA_SERVICE);
+            if(cm==null)return "Camera service unavailable.";
+            String id=null; for(String x:cm.getCameraIdList()){android.hardware.camera2.CameraCharacteristics c=cm.getCameraCharacteristics(x);Boolean flash=c.get(android.hardware.camera2.CameraCharacteristics.FLASH_INFO_AVAILABLE);Integer facing=c.get(android.hardware.camera2.CameraCharacteristics.LENS_FACING);if(Boolean.TRUE.equals(flash)){id=x;if(facing==null||facing==android.hardware.camera2.CameraCharacteristics.LENS_FACING_BACK)break;}}
+            if(id==null)return "No flashlight found.";
+            cm.setTorchMode(id,on); return on?"Flashlight on.":"Flashlight off.";
+        }catch(Exception e){return "Could not control the flashlight.";} 
+    }
+    private String brightness(int delta){
+        if(!Settings.System.canWrite(context)){try{Intent i=new Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS,Uri.parse("package:"+context.getPackageName()));i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);context.startActivity(i);return "Please allow JARVIS to modify system settings, then try again.";}catch(Exception e){return "Brightness permission is unavailable.";}}
+        try{int cur=Settings.System.getInt(context.getContentResolver(),Settings.System.SCREEN_BRIGHTNESS);int v=Math.max(10,Math.min(255,cur+delta));Settings.System.putInt(context.getContentResolver(),Settings.System.SCREEN_BRIGHTNESS,v);return "Brightness adjusted.";}catch(Exception e){return "Could not change brightness.";} 
+    }
+    private String readNotifications(){
+        String n=SecureStore.get(context,"latest_notifications");
+        return n==null||n.trim().isEmpty()?"No notification data available. Enable JARVIS Notification Access in Settings.":n;
     }
     private String volume(int direction){
         AudioManager am=(AudioManager)context.getSystemService(Context.AUDIO_SERVICE);
