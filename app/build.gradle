@@ -33,8 +33,8 @@ android {
         applicationId 'com.jarvis.ai.v124'
         minSdk 23
         targetSdk 33
-        versionCode 46
-        versionName "1.5.3"
+        versionCode 47
+        versionName "1.5.4"
     }
 }
 
