@@ -85,7 +85,7 @@ public final class JarvisCloudStt {
                         }
                         // Keep listening long enough for a complete sentence, but
                         // stop after real silence so noisy rooms don't run forever.
-                        if(speechStarted>0 && now-lastVoice>5000 && now-speechStarted>900)break;
+                        if(speechStarted>0 && now-lastVoice>3000 && now-speechStarted>900)break;
                     }
                 }
                 if(speechStarted==0 || total<rate*2) return null;
