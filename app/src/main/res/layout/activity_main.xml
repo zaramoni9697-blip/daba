@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent" android:background="#0B0A0F">
+<FrameLayout android:id="@+id/mainRoot" xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent" android:background="#0B0A0F">
 <LinearLayout android:id="@+id/topBar" android:layout_width="match_parent" android:layout_height="64dp" android:orientation="horizontal" android:gravity="center_vertical" android:paddingStart="22dp" android:paddingEnd="18dp">
 <TextView android:id="@+id/history" android:layout_width="48dp" android:layout_height="48dp" android:gravity="center" android:text="◷" android:textColor="#E8E5EE" android:textSize="30sp" android:clickable="true" android:focusable="true"/>
 <TextView android:id="@+id/appTitle" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="Jarvis" android:textColor="#F5F1F8" android:textSize="24sp" android:textStyle="bold"/>
