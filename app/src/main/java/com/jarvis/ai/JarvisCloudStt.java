@@ -4,6 +4,8 @@ import android.content.Context;
 import android.media.AudioFormat;
 import android.media.AudioRecord;
 import android.media.MediaRecorder;
+import android.media.audiofx.AutomaticGainControl;
+import android.media.audiofx.NoiseSuppressor;
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -18,8 +20,14 @@ public final class JarvisCloudStt {
         if(min<=0)return null;
         AudioRecord record=null; File wav=null;
         try{
-            record=new AudioRecord(MediaRecorder.AudioSource.MIC,rate,channels,format,Math.max(min*2,8192));
+            int source=MediaRecorder.AudioSource.VOICE_RECOGNITION;
+            try{ record=new AudioRecord(source,rate,channels,format,Math.max(min*2,16384)); }
+            catch(Exception e){ record=new AudioRecord(MediaRecorder.AudioSource.MIC,rate,channels,format,Math.max(min*2,16384)); }
             if(record.getState()!=AudioRecord.STATE_INITIALIZED)return null;
+            AutomaticGainControl agc=null;
+            NoiseSuppressor ns=null;
+            try{ if(AutomaticGainControl.isAvailable()) agc=AutomaticGainControl.create(record.getAudioSessionId()); }catch(Exception ignored){}
+            try{ if(NoiseSuppressor.isAvailable()) ns=NoiseSuppressor.create(record.getAudioSessionId()); }catch(Exception ignored){}
             wav=File.createTempFile("jarvis_voice_",".wav",context.getCacheDir());
             try(FileOutputStream out=new FileOutputStream(wav)){
                 writeHeader(out,0,rate,1,16);
@@ -32,16 +40,21 @@ public final class JarvisCloudStt {
                 while(System.currentTimeMillis()<maxEnd){
                     int n=record.read(b,0,b.length);
                     if(n>0){
-                        out.write(b,0,n);total+=n;
                         long sum=0;
                         for(int p=0;p+1<n;p+=2){
                             int lo=b[p]&0xff, hi=b[p+1];
                             short sample=(short)((hi<<8)|lo);
                             sum+=Math.abs((int)sample);
+                            int boosted=(int)Math.round(sample*1.7);
+                            if(boosted>32767)boosted=32767;
+                            if(boosted<-32768)boosted=-32768;
+                            b[p]=(byte)(boosted&0xff);
+                            b[p+1]=(byte)((boosted>>8)&0xff);
                         }
+                        out.write(b,0,n);total+=n;
                         double avg=sum/Math.max(1,n/2);
                         long now=System.currentTimeMillis();
-                        if(avg>900){
+                        if(avg>350){
                             if(speechStarted==0)speechStarted=now;
                             lastVoice=now;
                         }
@@ -50,6 +63,8 @@ public final class JarvisCloudStt {
                 }
                 if(speechStarted==0 || total<rate*2) return null;
                 record.stop();
+                try{if(agc!=null)agc.release();}catch(Exception ignored){}
+                try{if(ns!=null)ns.release();}catch(Exception ignored){}
                 try(RandomAccessFile raf=new RandomAccessFile(wav,"rw")){raf.seek(0);writeHeader(raf,total,rate,1,16);}
             }
             return upload(wav,apiKey);
