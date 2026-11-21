@@ -24,11 +24,11 @@ public class JarvisCommandRouter {
         if(s.contains("bluetooth")||s.contains("ব্লুটুথ"))return action(JarvisAction.Type.BLUETOOTH_SETTINGS,null);
         if(s.contains("mobile network")||s.contains("mobile data")||s.contains("মোবাইল নেটওয়ার্ক")||s.contains("মোবাইল ডাটা"))return action(JarvisAction.Type.MOBILE_NETWORK_SETTINGS,null);
         if(s.contains("airplane mode")||s.contains("airplane")||s.contains("ফ্লাইট মোড")||s.contains("এয়ারপ্লেন মোড"))return action(JarvisAction.Type.AIRPLANE_MODE_SETTINGS,null);
-        if(s.contains("whatsapp")&& (s.contains("message")||s.contains("মেসেজ")))return action(JarvisAction.Type.WHATSAPP_MESSAGE,raw);
-        if(s.contains("messenger")&& (s.contains("message")||s.contains("মেসেজ")))return action(JarvisAction.Type.MESSENGER_MESSAGE,raw);
+        if(s.contains("whatsapp")&& (s.contains("message")||s.contains("মেসেজ")))return new JarvisAction(JarvisAction.Type.WHATSAPP_SEND,raw,true);
+        if(s.contains("messenger")&& (s.contains("message")||s.contains("মেসেজ")))return new JarvisAction(JarvisAction.Type.MESSENGER_SEND,raw,true);
         if(s.contains("volume down")||s.contains("শব্দ কমাও")||s.contains("ভলিউম কমাও"))return new JarvisAction(JarvisAction.Type.ASK_AI,raw,false);
         if(s.startsWith("call ")||s.startsWith("কল ")){String n=s.replaceFirst("^(call|কল)\\s*","");return new JarvisAction(JarvisAction.Type.CALL,n,true);}
-        if(s.startsWith("sms ")||s.startsWith("text ")||s.startsWith("মেসেজ ")){String n=s.replaceFirst("^(sms|text|মেসেজ)\\s*","");return new JarvisAction(JarvisAction.Type.SMS,n,true);}
+        if(s.startsWith("sms ")||s.startsWith("text ")||s.startsWith("message ")||s.startsWith("মেসেজ ")){String n=s.replaceFirst("^(sms|text|message|মেসেজ)\\s*","");return new JarvisAction(JarvisAction.Type.SMS,n,true);}
         if(s.startsWith("click ")||s.startsWith("tap ")||s.startsWith("ক্লিক ")||s.startsWith("ট্যাপ ")){String v=s.replaceFirst("^(click|tap|ক্লিক|ট্যাপ)\\s*","").trim();return action(JarvisAction.Type.CLICK_TEXT,v);}
         if(s.startsWith("type ")||s.startsWith("লিখ ")||s.startsWith("টাইপ ")){String v=s.replaceFirst("^(type|লিখ|টাইপ)\\s*","").trim();return action(JarvisAction.Type.TYPE_TEXT,v);}
 
