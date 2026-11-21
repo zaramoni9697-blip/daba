@@ -78,6 +78,22 @@ public class JarvisAccessibilityService extends AccessibilityService {
         out.add(node);
         for(int i=0;i<node.getChildCount();i++)collectNodes(node.getChild(i),out);
     }
+    public static boolean clickAny(String... labels){
+        if(instance==null)return false;
+        for(String label:labels)if(clickTextContains(label))return true;
+        return false;
+    }
+    public static boolean typeIntoFocused(String text){
+        if(instance==null)return false;
+        return typeText(text);
+    }
+    public static boolean isPackageActive(String pkg){
+        if(instance==null)return false;
+        AccessibilityNodeInfo root=instance.getRootInActiveWindow();
+        if(root==null)return false;
+        CharSequence p=root.getPackageName();
+        return p!=null&&pkg.equals(p.toString());
+    }
     public static boolean focusInput(){
         if(instance==null)return false;
         AccessibilityNodeInfo root=instance.getRootInActiveWindow();
