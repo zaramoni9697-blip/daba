@@ -17,7 +17,9 @@ public class SettingsActivity extends AppCompatActivity {
     private EditText gemini, openai, groq, openrouter, deepseek, xai, custom, endpoint;
     private EditText openrouterModel, deepseekModel, xaiModel, githubPagesToken, githubPagesRepo;
     private Switch autoFailover, voiceReplies, saveMemory, farVoice;
-    private TextView wakeState, phoneState, modeTitle, modeHint, micDiagnostic;\n    private LinearLayout micPanel;\n    private JarvisMicDiagnostic micTest;
+    private TextView wakeState, phoneState, modeTitle, modeHint, micDiagnostic;
+    private LinearLayout micPanel;
+    private JarvisMicDiagnostic micTest;
     private final String[] providers={"Gemini","OpenAI-compatible","Groq","OpenRouter","DeepSeek","Grok","Custom"};
     private final int BG=Color.rgb(10,9,14), CARD=Color.rgb(20,19,28), INPUT=Color.rgb(12,11,17), CYAN=Color.rgb(0,225,255), PURPLE=Color.rgb(150,135,255), MUTED=Color.rgb(155,149,175);
 
@@ -145,7 +147,8 @@ public class SettingsActivity extends AppCompatActivity {
         micPanel=d;
         d.addView(label("MICROPHONE DIAGNOSTIC"));
         d.addView(tv("এখানে JARVIS-এর microphone capture, noise floor এবং Android audio effects সরাসরি পরীক্ষা করুন।",12,MUTED));
-        micDiagnostic=tv("● READY\nPermission এবং microphone test শুরু করুন.",12,Color.WHITE);
+        micDiagnostic=tv("● READY
+Permission এবং microphone test শুরু করুন.",12,Color.WHITE);
         micDiagnostic.setGravity(Gravity.TOP);
         micDiagnostic.setPadding(0,dp(10),0,dp(10));
         d.addView(micDiagnostic,new LinearLayout.LayoutParams(-1,dp(150)));
@@ -189,7 +192,8 @@ public class SettingsActivity extends AppCompatActivity {
     private void showMode(String mode){
         generalPanel.setVisibility("GENERAL".equals(mode)?View.VISIBLE:View.GONE);
         apiPanel.setVisibility("AI / API".equals(mode)?View.VISIBLE:View.GONE);
-        voicePanel.setVisibility("VOICE".equals(mode)?View.VISIBLE:View.GONE);\n        if(micPanel!=null)micPanel.setVisibility("VOICE".equals(mode)?View.VISIBLE:View.GONE);
+        voicePanel.setVisibility("VOICE".equals(mode)?View.VISIBLE:View.GONE);
+        if(micPanel!=null)micPanel.setVisibility("VOICE".equals(mode)?View.VISIBLE:View.GONE);
         websitePanel.setVisibility("AI / API".equals(mode)?View.VISIBLE:View.GONE);
         phonePanel.setVisibility("PHONE".equals(mode)?View.VISIBLE:View.GONE);
         modeTitle.setText(mode+" MODE");
