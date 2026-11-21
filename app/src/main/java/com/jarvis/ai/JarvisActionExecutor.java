@@ -143,16 +143,32 @@ public class JarvisActionExecutor {
 
     private String sendWhatsAppMessage(String raw){
         String[] p=parseMessage(raw);
-        String number=resolveContactNumber(p[0]);
-        if(number==null)return "Contact not found. Please save the phone number first.";
-        String normalized=number.replaceAll("[^0-9]","");
-        if(normalized.startsWith("0")) normalized="880"+normalized.substring(1);
+        if(p[0].trim().isEmpty()||p[1].trim().isEmpty())return "Please say the contact name and message.";
+        if(!JarvisAccessibilityService.isEnabled())return needAccessibility();
         try{
-            Intent i=new Intent(Intent.ACTION_VIEW,Uri.parse("https://wa.me/"+normalized+"?text="+Uri.encode(p[1])));
+            Intent i=context.getPackageManager().getLaunchIntentForPackage("com.whatsapp");
+            if(i==null)return "WhatsApp is not installed.";
             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             context.startActivity(i);
-            return "WhatsApp message is ready for "+p[0]+". Please tap Send.";
-        }catch(Exception e){return "Could not open WhatsApp for that contact.";}
+            final String contact=p[0].trim();
+            final String message=p[1].trim();
+            android.os.Handler h=new android.os.Handler(android.os.Looper.getMainLooper());
+            h.postDelayed(()->{
+                if(!JarvisAccessibilityService.clickTextContains("search"))
+                    JarvisAccessibilityService.clickTextContains("Search");
+                JarvisAccessibilityService.clickTextContains("খুঁজুন");
+            },900);
+            h.postDelayed(()->{
+                JarvisAccessibilityService.focusInput();
+                JarvisAccessibilityService.typeText(contact);
+            },1300);
+            h.postDelayed(()->JarvisAccessibilityService.clickTextContains(contact),2200);
+            h.postDelayed(()->{
+                JarvisAccessibilityService.focusInput();
+                JarvisAccessibilityService.typeText(message);
+            },3000);
+            return "WhatsApp opened. I found the contact flow and typed the message. Please review and tap Send.";
+        }catch(Exception e){return "Could not automate WhatsApp. Please keep JARVIS Accessibility enabled.";}
     }
     private String[] parseMessage(String raw){
         String s=raw==null?"":raw.trim();
