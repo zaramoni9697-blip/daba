@@ -111,6 +111,58 @@ public class JarvisActionExecutor {
     }
 
 
+    public static class ContactCandidate{
+        public final String name;
+        public final String number;
+        public ContactCandidate(String n,String p){name=n;number=p;}
+        public String display(){
+            String digits=number==null?"":number.replaceAll("[^0-9]","");
+            String tail=digits.length()>4?digits.substring(digits.length()-4):digits;
+            return name+(tail.isEmpty()?"":" ••••"+tail);
+        }
+    }
+
+    public String[] parseMessageForVoice(String raw){return parseMessage(raw);}
+
+    public java.util.List<ContactCandidate> findContactCandidates(String query){
+        java.util.List<ContactCandidate> out=new java.util.ArrayList<>();
+        String q=query==null?"":query.trim();
+        if(q.isEmpty())return out;
+        Cursor c=null;
+        java.util.HashSet<String> seen=new java.util.HashSet<>();
+        try{
+            c=context.getContentResolver().query(
+                ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
+                new String[]{
+                    ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME,
+                    ContactsContract.CommonDataKinds.Phone.NUMBER,
+                    ContactsContract.CommonDataKinds.Phone.CONTACT_ID
+                },
+                ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME+" LIKE ?",
+                new String[]{"%"+q+"%"},
+                ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME+" COLLATE NOCASE ASC"
+            );
+            if(c!=null){
+                int ni=c.getColumnIndex(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME);
+                int pi=c.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER);
+                int ci=c.getColumnIndex(ContactsContract.CommonDataKinds.Phone.CONTACT_ID);
+                while(c.moveToNext()){
+                    String name=ni>=0?c.getString(ni):"";
+                    String number=pi>=0?c.getString(pi):"";
+                    String id=ci>=0?c.getString(ci):name+"|"+number;
+                    if(name==null||name.trim().isEmpty())continue;
+                    String key=id+"|"+number;
+                    if(seen.add(key))out.add(new ContactCandidate(name.trim(),number));
+                }
+            }
+        }catch(Exception ignored){}finally{if(c!=null)c.close();}
+        return out;
+    }
+
+    public String messageCommandForContact(String contact,String body){
+        return contact+" কে "+body;
+    }
+
     private String sendMessengerMessage(String raw){
         String[] p=parseMessage(raw);
         if(p[0].trim().isEmpty()||p[1].trim().isEmpty())return "Please say the contact name and message.";
