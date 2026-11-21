@@ -104,6 +104,14 @@ public class TextChatActivity extends AppCompatActivity {
         addBubble("JARVIS","Thinking…",false);
 
         JarvisAction action=router.route(q);
+        if(action.type!=JarvisAction.Type.ASK_AI && !isMessageAction(action.type)){
+            final JarvisAction directAction=action;
+            new Thread(()->{
+                String answer=executor.execute(directAction);
+                runOnUiThread(()->finishAction(q,answer));
+            }).start();
+            return;
+        }
         if(isMessageAction(action.type)){
             String[] parts=executor.parseMessageForVoice(action.value);
             if(parts[0].trim().isEmpty()||parts[1].trim().isEmpty()){
