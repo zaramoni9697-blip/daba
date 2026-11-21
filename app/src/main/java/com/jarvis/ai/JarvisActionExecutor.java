@@ -151,7 +151,7 @@ public class JarvisActionExecutor {
                     String number=pi>=0?c.getString(pi):"";
                     String id=ci>=0?c.getString(ci):name+"|"+number;
                     if(name==null||name.trim().isEmpty())continue;
-                    String key=id+"|"+number;
+                    String key=id;
                     if(seen.add(key))out.add(new ContactCandidate(name.trim(),number));
                 }
             }
