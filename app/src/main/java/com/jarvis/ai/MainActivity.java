@@ -92,11 +92,12 @@ public class MainActivity extends AppCompatActivity {
     @Override protected void onPause(){
         super.onPause();
         activityVisible=false;
-        if(isFinishing()) return;
         handler.removeCallbacksAndMessages(null);
         stopInAppRecognizer();
+        // Keep the background wake listener alive even when the JARVIS
+        // activity is completely closed with Back/Home or after a command.
         if(mic() && !"false".equals(SecureStore.get(this,"wake_enabled")))
-            handler.postDelayed(this::ensureWakeService,700);
+            handler.postDelayed(this::ensureWakeService,350);
     }
 
     private void stopInAppRecognizer(){
