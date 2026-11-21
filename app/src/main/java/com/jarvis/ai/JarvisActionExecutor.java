@@ -225,8 +225,17 @@ public class JarvisActionExecutor {
     private String[] parseMessage(String raw){
         String s=raw==null?"":raw.trim();
         s=s.replaceAll("(?i)\\b(whatsapp|messenger)\\b"," ").trim();
-        s=s.replaceFirst("^(?i:ম্যাসেঞ্জারে|মেসেঞ্জারে|হোয়াটসঅ্যাপে|হোয়াটসঅ্যাপে|whatsapp-?e|messenger-?e)\\s*","").trim();
+        s=s.replaceFirst("^(?i:ম্যাসেঞ্জারে|মেসেঞ্জারে|হোয়াটসঅ্যাপে|হোয়াটসঅ্যাপে|whatsapp-?e|messenger-?e)\\s*","");
         s=s.replaceFirst("^(?i:ম্যাসেঞ্জারে গিয়ে|মেসেঞ্জারে গিয়ে|whatsapp-?e giye|messenger-?e giye|গিয়ে|যেয়ে|go to|in)\\s*","").trim();
+
+        int msg=s.toLowerCase(Locale.ROOT).indexOf("message ");
+        if(msg>=0){
+            s=s.substring(msg+8).trim();
+        }else{
+            int text=s.toLowerCase(Locale.ROOT).indexOf("text ");
+            if(text>=0)s=s.substring(text+5).trim();
+        }
+
         int k=s.indexOf("কে");
         if(k>0){
             String contact=s.substring(0,k).trim();
@@ -234,18 +243,34 @@ public class JarvisActionExecutor {
             body=body.replaceFirst("^(?i:মেসেজ|message|sms)\\s*(দাও|দাও তো|পাঠাও|send)?\\s*","").trim();
             return new String[]{contact,body};
         }
-        java.util.regex.Matcher m=java.util.regex.Pattern.compile("(?i)message\\s+to\\s+(.+?)\\s+(?:saying|that says|:)\\s*(.+)$").matcher(s);
+
+        java.util.regex.Matcher m=java.util.regex.Pattern.compile("(?i)^(.+?)\\s+(?:saying|that says|:)\\s*(.+)$").matcher(s);
         if(m.find())return new String[]{m.group(1).trim(),m.group(2).trim()};
-        m=java.util.regex.Pattern.compile("(?i)send\\s+(?:a\\s+)?message\\s+to\\s+(.+?)\\s+(?:saying|that says|:)\\s*(.+)$").matcher(s);
-        if(m.find())return new String[]{m.group(1).trim(),m.group(2).trim()};
+
         int t=s.toLowerCase(Locale.ROOT).indexOf(" to ");
-        if(t>0){
-            String left=s.substring(0,t).trim();
-            String contact=left.replaceFirst("(?i)^(message|send a message|text)\\s*","").trim();
-            return new String[]{contact,s.substring(t+4).trim()};
+        if(t>0)return new String[]{s.substring(0,t).trim(),s.substring(t+4).trim()};
+
+        // For natural voice commands such as “message Obito বাজারে আসো”,
+        // find the longest contact-name prefix and treat the rest as the body.
+        String[] words=s.split("\\s+");
+        for(int cut=words.length-1;cut>=1;cut--){
+            String candidate=joinWords(words,0,cut);
+            if(findContactCandidates(candidate).size()>0){
+                String body=joinWords(words,cut,words.length);
+                if(!body.isEmpty())return new String[]{candidate,body};
+            }
         }
+
+        if(words.length>=2)return new String[]{words[0],joinWords(words,1,words.length)};
         return new String[]{s,""};
     }
+
+    private String joinWords(String[] words,int from,int to){
+        StringBuilder b=new StringBuilder();
+        for(int i=from;i<to;i++){if(b.length()>0)b.append(' ');b.append(words[i]);}
+        return b.toString().trim();
+    }
+
     private String resolveContactNumber(String q){
         String number=q==null?"":q.replaceAll("[^0-9+]","");
         if(number.length()>=6)return number;
