@@ -192,7 +192,7 @@ public class MainActivity extends AppCompatActivity {
                 recognitionInProgress=false;
                 ArrayList<String> a=b.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
                 if(a!=null&&!a.isEmpty()){
-                    String cmd=a.get(0);
+                    String cmd=chooseBestRecognition(a);
                     transcript.setText(cmd);
                     transcript.setVisibility(View.VISIBLE);
                     execute(cmd);
@@ -309,6 +309,39 @@ public class MainActivity extends AppCompatActivity {
         // Android has had time to register the recognition service.
         if(hasFocus && activityVisible && continuousVoice && mic())
             handler.postDelayed(this::listen,900);
+    }
+
+    // Android SpeechRecognizer can return several hypotheses. The first one is
+    // not always the best for mixed Bengali/English commands. Prefer a hypothesis
+    // that the JARVIS command router can actually understand.
+    private String chooseBestRecognition(ArrayList<String> candidates){
+        String best=candidates.get(0);
+        int bestScore=-100000;
+        for(String raw:candidates){
+            if(raw==null||raw.trim().isEmpty())continue;
+            String s=raw.trim();
+            JarvisAction a=router.route(s);
+            int score=0;
+            if(a.type!=JarvisAction.Type.ASK_AI)score+=100;
+            if(a.type==JarvisAction.Type.OPEN_APP)score+=35;
+            if(a.type==JarvisAction.Type.HOME||a.type==JarvisAction.Type.BACK
+                    ||a.type==JarvisAction.Type.RECENTS||a.type==JarvisAction.Type.VOLUME_UP
+                    ||a.type==JarvisAction.Type.VOLUME_DOWN||a.type==JarvisAction.Type.MUTE
+                    ||a.type==JarvisAction.Type.SCREENSHOT||a.type==JarvisAction.Type.FLASHLIGHT_ON
+                    ||a.type==JarvisAction.Type.FLASHLIGHT_OFF)score+=25;
+            String low=s.toLowerCase(Locale.ROOT);
+            if(low.contains("facebook")||low.contains("ফেসবুক")
+                    ||low.contains("youtube")||low.contains("ইউটিউব")
+                    ||low.contains("messenger")||low.contains("মেসেঞ্জার")
+                    ||low.contains("whatsapp")||low.contains("হোয়াটসঅ্যাপ")
+                    ||low.contains("সেটিংস"))score+=30;
+            score+=Math.min(20,s.length()/4);
+            if(score>bestScore){
+                bestScore=score;
+                best=s;
+            }
+        }
+        return best;
     }
 
     private String speechErrorName(int e){
