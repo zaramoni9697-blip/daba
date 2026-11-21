@@ -225,6 +225,8 @@ public class JarvisActionExecutor {
     private String[] parseMessage(String raw){
         String s=raw==null?"":raw.trim();
         s=s.replaceAll("(?i)\\b(whatsapp|messenger)\\b"," ").trim();
+        s=s.replaceFirst("^(?i:ম্যাসেঞ্জারে|মেসেঞ্জারে|হোয়াটসঅ্যাপে|হোয়াটসঅ্যাপে|whatsapp-?e|messenger-?e)\\s*","").trim();
+        s=s.replaceFirst("^(?i:ম্যাসেঞ্জারে গিয়ে|মেসেঞ্জারে গিয়ে|whatsapp-?e giye|messenger-?e giye|গিয়ে|যেয়ে|go to|in)\\s*","").trim();
         int k=s.indexOf("কে");
         if(k>0){
             String contact=s.substring(0,k).trim();
