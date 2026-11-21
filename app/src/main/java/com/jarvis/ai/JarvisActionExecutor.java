@@ -174,23 +174,52 @@ public class JarvisActionExecutor {
             context.startActivity(i);
             final String contact=p[0].trim();
             final String message=p[1].trim();
-            new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(()->{
-                JarvisAccessibilityService.clickTextContains("search");
-                JarvisAccessibilityService.clickTextContains("খুঁজুন");
-            },900);
-            new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(()->{
-                JarvisAccessibilityService.focusInput();
-                JarvisAccessibilityService.typeText(contact);
-            },1300);
-            new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(()->{
-                JarvisAccessibilityService.clickTextContains(contact);
-            },2200);
-            new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(()->{
-                JarvisAccessibilityService.focusInput();
-                JarvisAccessibilityService.typeText(message);
-            },3000);
-            return "Messenger opened. I found the contact flow and typed the message. Please review and tap Send.";
+            runMessengerStep(contact,message,0);
+            return "Messenger opened. I am searching for the contact and preparing the message.";
         }catch(Exception e){return "Could not automate Messenger. Please keep JARVIS Accessibility enabled.";}
+    }
+
+    private void runMessengerStep(final String contact,final String message,final int step){
+        if(step>24)return;
+        final android.os.Handler h=new android.os.Handler(android.os.Looper.getMainLooper());
+        h.postDelayed(()->{
+            if(!JarvisAccessibilityService.isPackageActive("com.facebook.orca")){
+                runMessengerStep(contact,message,step+1);
+                return;
+            }
+            boolean ok=false;
+            if(step<8){
+                ok=JarvisAccessibilityService.clickAny("Search Messenger","Search","search","খুঁজুন","সার্চ");
+                if(ok)runMessengerStep(contact,message,8);
+                else runMessengerStep(contact,message,step+1);
+            }else if(step<14){
+                ok=JarvisAccessibilityService.focusInput();
+                if(ok&&JarvisAccessibilityService.typeIntoFocused(contact))runMessengerStep(contact,message,14);
+                else runMessengerStep(contact,message,step+1);
+            }else if(step<20){
+                ok=JarvisAccessibilityService.clickTextContains(contact);
+                if(ok)runMessengerStep(contact,message,20);
+                else runMessengerStep(contact,message,step+1);
+            }else if(step<24){
+                ok=JarvisAccessibilityService.focusInput();
+                if(ok&&JarvisAccessibilityService.typeIntoFocused(message)){
+                    // The user already confirmed the action in JARVIS, so send it.
+                    h.postDelayed(()->clickMessengerSend(0),900);
+                    return;
+                }
+                runMessengerStep(contact,message,step+1);
+            }
+        },step<8?450:350);
+    }
+
+    private void clickMessengerSend(final int attempt){
+        if(attempt>10)return;
+        android.os.Handler h=new android.os.Handler(android.os.Looper.getMainLooper());
+        h.postDelayed(()->{
+            if(!JarvisAccessibilityService.isPackageActive("com.facebook.orca"))return;
+            if(!JarvisAccessibilityService.clickAny("Send","send","পাঠান","পাঠাও","SEND"))
+                clickMessengerSend(attempt+1);
+        },300);
     }
 
     private String sendWhatsAppMessage(String raw){
