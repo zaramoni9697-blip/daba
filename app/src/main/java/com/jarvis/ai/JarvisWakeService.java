@@ -13,6 +13,7 @@ public class JarvisWakeService extends Service {
     private static volatile boolean active;
     private static final String CH = "jarvis_v1";
     private static final int NOTIFICATION_ID = 1001;
+    private long lastCommandAt=0;
 
     public static boolean isRunning() { return active; }
 
@@ -55,7 +56,7 @@ public class JarvisWakeService extends Service {
         }
         recognizer = SpeechRecognizer.createSpeechRecognizer(this);
         recognizer.setRecognitionListener(new RecognitionListener() {
-            public void onResults(Bundle b) { check(b); scheduleListen(300); }
+            public void onResults(Bundle b) { check(b); scheduleListen(500); }
             public void onPartialResults(Bundle b) { check(b); }
             public void onError(int e) { scheduleListen(700); }
             public void onReadyForSpeech(Bundle b) {}
@@ -98,12 +99,20 @@ public class JarvisWakeService extends Service {
     }
 
     private void check(Bundle b) {
+        if(System.currentTimeMillis()-lastCommandAt<2500) return;
         ArrayList<String> results = b.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
         if (results == null) return;
 
         for (String s : results) {
             if (isWakePhrase(s)) {
-                triggerWake();
+                lastCommandAt=System.currentTimeMillis();
+                String command=stripWakePhrase(s);
+                triggerWake(command);
+                return;
+            }
+            if(isDirectCommand(s)){
+                lastCommandAt=System.currentTimeMillis();
+                triggerWake(s);
                 return;
             }
         }
@@ -124,11 +133,31 @@ public class JarvisWakeService extends Service {
                 || x.contains("হেই জার্ভিস");
     }
 
-    private void triggerWake() {
+    private boolean isDirectCommand(String value){
+        if(value==null)return false;
+        String x=value.toLowerCase(Locale.ROOT).trim();
+        return x.contains("খুলো") || x.contains("খোল") || x.contains("open ")
+                || x.contains("চালু") || x.contains("বন্ধ") || x.contains("ফেসবুক")
+                || x.contains("ইউটিউব") || x.contains("মেসেঞ্জার") || x.contains("হোয়াটসঅ্যাপ")
+                || x.contains("whatsapp") || x.contains("facebook") || x.contains("youtube")
+                || x.contains("volume") || x.contains("ভলিউম") || x.contains("flashlight")
+                || x.contains("টর্চ") || x.contains("screenshot") || x.contains("স্ক্রিনশট")
+                || x.contains("back") || x.contains("home") || x.contains("ফিরে যাও");
+    }
+
+    private String stripWakePhrase(String value){
+        String x=value==null?"":value.trim();
+        x=x.replaceAll("(?i)hey[, ]*jarvis","").trim();
+        x=x.replace("হেই জারভিস","").replace("হে জারভিস","").replace("হেই জার্ভিস","").replace("হে জার্ভিস","").trim();
+        return x;
+    }
+
+    private void triggerWake(String command) {
         handler.removeCallbacksAndMessages(null);
         Intent in = new Intent(this, MainActivity.class);
         in.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
         in.putExtra("wake", true);
+        if(command!=null && !command.trim().isEmpty()) in.putExtra("wake_command",command.trim());
         startActivity(in);
         scheduleListen(1800);
     }
