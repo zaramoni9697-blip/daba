@@ -46,6 +46,8 @@ public class JarvisActionExecutor {
             case AIRPLANE_MODE_SETTINGS:return openSettings("android.settings.AIRPLANE_MODE_SETTINGS");
             case WHATSAPP_MESSAGE:return openMessagingApp("com.whatsapp");
             case MESSENGER_MESSAGE:return openMessagingApp("com.facebook.orca");
+            case WHATSAPP_SEND:return sendWhatsAppMessage(a.value);
+            case MESSENGER_SEND:return openMessagingApp("com.facebook.orca");
             case CALL:return callContactOrNumber(a.value);
             case CLICK_TEXT:return JarvisAccessibilityService.clickText(a.value)?"Clicked "+a.value+".":needAccessibility();
             case TYPE_TEXT:return JarvisAccessibilityService.typeText(a.value)?"Typed it.":needAccessibility();
@@ -108,13 +110,46 @@ public class JarvisActionExecutor {
         }
     }
 
+    private String sendWhatsAppMessage(String raw){
+        String[] p=parseMessage(raw);
+        String number=resolveContactNumber(p[0]);
+        if(number==null)return "Contact not found. Please save the phone number first.";
+        String normalized=number.replaceAll("[^0-9]","");
+        if(normalized.startsWith("0")) normalized="880"+normalized.substring(1);
+        try{
+            Intent i=new Intent(Intent.ACTION_VIEW,Uri.parse("https://wa.me/"+normalized+"?text="+Uri.encode(p[1])));
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            context.startActivity(i);
+            return "WhatsApp message is ready for "+p[0]+". Please tap Send.";
+        }catch(Exception e){return "Could not open WhatsApp for that contact.";}
+    }
+    private String[] parseMessage(String raw){
+        String s=raw==null?"":raw.trim();
+        s=s.replaceFirst("(?i)^(sms|text|message|মেসেজ)\\s*","").trim();
+        int k=s.indexOf("কে");
+        if(k>0)return new String[]{s.substring(0,k).trim(),s.substring(k+2).trim()};
+        int t=s.toLowerCase(Locale.ROOT).indexOf(" to ");
+        if(t>0)return new String[]{s.substring(0,t).trim(),s.substring(t+4).trim()};
+        return new String[]{s,""};
+    }
+    private String resolveContactNumber(String q){
+        String number=q==null?"":q.replaceAll("[^0-9+]","");
+        if(number.length()>=6)return number;
+        Cursor c=null;
+        try{
+            c=context.getContentResolver().query(ContactsContract.CommonDataKinds.Phone.CONTENT_URI,new String[]{ContactsContract.CommonDataKinds.Phone.NUMBER},ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME+" LIKE ?",new String[]{"%"+q+"%"},null);
+            if(c!=null&&c.moveToFirst())return c.getString(0);
+        }catch(Exception ignored){}finally{if(c!=null)c.close();}
+        return null;
+    }
+
     private String sendSms(String raw){
         String text=raw==null?"" : raw.trim();
         Intent i=new Intent(Intent.ACTION_SENDTO);
         i.setData(Uri.parse("smsto:"));
         i.putExtra("sms_body",text);
         i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        try{context.startActivity(i);return "SMS composer opened. Please review and send.";}catch(Exception e){return "SMS app unavailable.";}
+        try{context.startActivity(i);return "SMS message is ready for "+p[0]+". Please review and tap Send.";}catch(Exception e){return "SMS app unavailable.";}
     }
     private String needAccessibility(){
         context.startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
