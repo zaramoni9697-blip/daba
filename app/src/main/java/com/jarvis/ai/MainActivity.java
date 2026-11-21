@@ -32,6 +32,7 @@ public class MainActivity extends AppCompatActivity {
     private SpeechRecognizer recognizer;
     private boolean activityVisible=false;
     private boolean cloudVoiceInProgress=false;
+    private boolean cloudFailedFallbackOnce=false;
     private FrameLayout mainRoot;
     private LinearLayout historyList;
     private View drawerOverlay;
@@ -143,6 +144,14 @@ public class MainActivity extends AppCompatActivity {
     private void listen(){
         if(!activityVisible || !continuousVoice || recognitionInProgress || !mic()) return;
         recognitionInProgress=true;
+        String groqKey=SecureStore.get(this,"groq");
+        boolean farVoice=!"false".equals(SecureStore.get(this,"far_voice")) && groqKey!=null && !groqKey.trim().isEmpty();
+        if(farVoice && !cloudFailedFallbackOnce){
+            recognitionInProgress=false;
+            listenWithCloudStt();
+            return;
+        }
+        cloudFailedFallbackOnce=false;
         if(!SpeechRecognizer.isRecognitionAvailable(this)){
             recognitionInProgress=false;
             listenWithCloudStt();
@@ -223,11 +232,13 @@ public class MainActivity extends AppCompatActivity {
                     transcript.setVisibility(View.VISIBLE);
                     execute(result[0]);
                 }else{
-                    status.setText("Voice input failed");
+                    cloudFailedFallbackOnce=true;
+                    status.setText("Cloud voice missed • switching to phone speech");
                     transcript.setText("কথা ঠিকমতো শনাক্ত করা যায়নি");
+
                     transcript.setVisibility(View.VISIBLE);
                     subtitle.setText("কথা বোঝা যায়নি — আবার চেষ্টা করছি");
-                    handler.postDelayed(this::listen,1000);
+                    handler.postDelayed(this::listen,700);
                 }
             });
         }).start();
