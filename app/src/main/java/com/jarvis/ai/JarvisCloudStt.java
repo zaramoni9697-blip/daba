@@ -6,6 +6,7 @@ import android.media.AudioRecord;
 import android.media.MediaRecorder;
 import android.media.audiofx.AutomaticGainControl;
 import android.media.audiofx.NoiseSuppressor;
+import android.media.audiofx.AcousticEchoCanceler;
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -26,8 +27,11 @@ public final class JarvisCloudStt {
             if(record.getState()!=AudioRecord.STATE_INITIALIZED)return null;
             AutomaticGainControl agc=null;
             NoiseSuppressor ns=null;
+            AcousticEchoCanceler aec=null;
             try{ if(AutomaticGainControl.isAvailable()) agc=AutomaticGainControl.create(record.getAudioSessionId()); }catch(Exception ignored){}
-            try{ if(NoiseSuppressor.isAvailable()) ns=NoiseSuppressor.create(record.getAudioSessionId()); }catch(Exception ignored){}
+            try{ if(NoiseSuppressor.isAvailable()){ ns=NoiseSuppressor.create(record.getAudioSessionId()); if(ns!=null)ns.setEnabled(true); } }catch(Exception ignored){}
+            try{ if(AcousticEchoCanceler.isAvailable()){ aec=AcousticEchoCanceler.create(record.getAudioSessionId()); if(aec!=null)aec.setEnabled(true); } }catch(Exception ignored){}
+            try{ if(agc!=null)agc.setEnabled(true); }catch(Exception ignored){}
             wav=File.createTempFile("jarvis_voice_",".wav",context.getCacheDir());
             try(FileOutputStream out=new FileOutputStream(wav)){
                 writeHeader(out,0,rate,1,16);
@@ -36,6 +40,8 @@ public final class JarvisCloudStt {
                 long maxEnd=start+30000;
                 long speechStarted=0;
                 long lastVoice=start;
+                double noiseFloor=180.0;
+                int calibrationFrames=0;
                 byte[] b=new byte[4096]; int total=0;
                 while(System.currentTimeMillis()<maxEnd){
                     int n=record.read(b,0,b.length);
@@ -45,7 +51,15 @@ public final class JarvisCloudStt {
                             int lo=b[p]&0xff, hi=b[p+1];
                             short sample=(short)((hi<<8)|lo);
                             sum+=Math.abs((int)sample);
-                            int boosted=(int)Math.round(sample*1.7);
+                            // Gentle dynamic compression: loud/shouted speech is
+                            // brought down before clipping, while quiet speech gets
+                            // a moderate lift. This keeps words intelligible in loud
+                            // rooms without simply amplifying the background.
+                            double x=sample/32768.0;
+                            double sign=x<0?-1.0:1.0;
+                            double ax=Math.abs(x);
+                            double compressed=ax<0.08?ax*1.9:(0.15+(ax-0.08)*0.88);
+                            int boosted=(int)Math.round(sign*Math.min(0.96,compressed)*32767.0);
                             if(boosted>32767)boosted=32767;
                             if(boosted<-32768)boosted=-32768;
                             b[p]=(byte)(boosted&0xff);
@@ -54,17 +68,31 @@ public final class JarvisCloudStt {
                         out.write(b,0,n);total+=n;
                         double avg=sum/Math.max(1,n/2);
                         long now=System.currentTimeMillis();
-                        if(avg>350){
+
+                        // Build an adaptive noise floor instead of using one fixed
+                        // threshold. This is much more tolerant of fans, traffic,
+                        // TV noise and people talking in the background.
+                        if(calibrationFrames<18){
+                            noiseFloor=(noiseFloor*0.85)+(avg*0.15);
+                            calibrationFrames++;
+                        }else{
+                            noiseFloor=(noiseFloor*0.995)+(Math.min(avg,noiseFloor*2.0)*0.005);
+                        }
+                        double speechThreshold=Math.max(180.0,noiseFloor*1.55);
+                        if(avg>speechThreshold){
                             if(speechStarted==0)speechStarted=now;
                             lastVoice=now;
                         }
-                        if(speechStarted>0 && now-lastVoice>5000 && now-speechStarted>1000)break;
+                        // Keep listening long enough for a complete sentence, but
+                        // stop after real silence so noisy rooms don't run forever.
+                        if(speechStarted>0 && now-lastVoice>5000 && now-speechStarted>900)break;
                     }
                 }
                 if(speechStarted==0 || total<rate*2) return null;
                 record.stop();
                 try{if(agc!=null)agc.release();}catch(Exception ignored){}
                 try{if(ns!=null)ns.release();}catch(Exception ignored){}
+                try{if(aec!=null)aec.release();}catch(Exception ignored){}
                 try(RandomAccessFile raf=new RandomAccessFile(wav,"rw")){raf.seek(0);writeHeader(raf,total,rate,1,16);}
             }
             return upload(wav,apiKey);
