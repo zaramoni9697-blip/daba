@@ -5,6 +5,11 @@ import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.view.*;
 import android.view.inputmethod.InputMethodManager;
+import android.content.Intent;
+import android.net.Uri;
+import android.provider.OpenableColumns;
+import java.io.InputStream;
+import java.io.ByteArrayOutputStream;
 import android.content.Context;
 import android.widget.*;
 import androidx.appcompat.app.AppCompatActivity;
@@ -18,6 +23,9 @@ public class TextChatActivity extends AppCompatActivity {
     private JarvisTts tts;
     private JarvisCommandRouter router;
     private JarvisActionExecutor executor;
+    private Button attachButton;
+    private Uri attachedFileUri;
+    private String attachedFileName="";
     private int BG=Color.rgb(10,9,14), CARD=Color.rgb(25,23,32), MUTED=Color.rgb(150,145,160), CYAN=Color.rgb(0,225,255);
 
     private int dp(float v){return (int)(v*getResources().getDisplayMetrics().density+0.5f);}
@@ -60,6 +68,9 @@ public class TextChatActivity extends AppCompatActivity {
         input=new EditText(this);input.setHint("Message JARVIS…");input.setHintTextColor(MUTED);input.setTextColor(Color.WHITE);
         input.setTextSize(15);input.setSingleLine(false);input.setMaxLines(4);input.setPadding(dp(16),0,dp(16),0);input.setBackground(bg(CARD,24));
         composer.addView(input,new LinearLayout.LayoutParams(0,dp(56),1));
+        Button attach=new Button(this);attach.setText("+");attach.setTextColor(CYAN);attach.setTextSize(24);attach.setAllCaps(false);attach.setBackground(bg(CARD,24));
+        LinearLayout.LayoutParams ap=new LinearLayout.LayoutParams(dp(56),dp(56));ap.setMargins(0,0,dp(8),0);composer.addView(attach,ap);
+        attachButton=attach;
         Button send=new Button(this);send.setText("➤");send.setTextColor(Color.BLACK);send.setTextSize(18);send.setAllCaps(false);send.setBackground(bg(CYAN,24));
         LinearLayout.LayoutParams sp=new LinearLayout.LayoutParams(dp(56),dp(56));sp.setMargins(dp(8),0,0,0);composer.addView(send,sp);
         root.addView(composer);
@@ -67,6 +78,7 @@ public class TextChatActivity extends AppCompatActivity {
 
         addBubble("JARVIS","Text chat ready. লিখুন, আমি শুনছি না—এবার সরাসরি text-এ উত্তর দেব।",false);
         loadRecent();
+        attach.setOnClickListener(v->pickFile());
         send.setOnClickListener(v->sendMessage());
         input.setOnEditorActionListener((v,a,e)->{if(e!=null){sendMessage();return true;}return false;});
     }
@@ -103,11 +115,19 @@ public class TextChatActivity extends AppCompatActivity {
         if(!"false".equals(SecureStore.get(this,"voice_replies")))tts.speak(answer);
     }
 
-    private void sendMessage(){
+NaN
         String q=input.getText().toString().trim();
         if(q.isEmpty())return;
         input.setText("");
-        addBubble("YOU",q,true);
+        String fileContext="";
+        String shownFileName=attachedFileName;
+        if(attachedFileUri!=null){
+            String content=readAttachedFile();
+            if(!content.isEmpty()) fileContext="\n\n[Attached file: "+shownFileName+"]\n"+content;
+            else fileContext="\n\n[Attached file: "+shownFileName+"] (content could not be read as text.)";
+            clearAttachment();
+        }
+        addBubble("YOU",q+(shownFileName.isEmpty()?"":"\n📎 "+shownFileName),true);
         addBubble("JARVIS","Thinking…",false);
 
         if(isWebsiteRequest(q)){
@@ -169,7 +189,7 @@ public class TextChatActivity extends AppCompatActivity {
         }
 
         new Thread(()->{
-            String answer=engine.ask(q);
+            String answer=engine.ask(q+fileContext);
             if(answer==null||answer.trim().isEmpty())answer="দুঃখিত, এখন উত্তর দিতে পারছি না।";
             final String finalAnswer=answer;
             runOnUiThread(()->finishAction(q,finalAnswer));
