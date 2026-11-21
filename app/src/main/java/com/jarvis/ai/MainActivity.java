@@ -379,7 +379,7 @@ public class MainActivity extends AppCompatActivity {
     private TextView drawerText(String text,float size,int color){
         TextView t=new TextView(this);
         t.setText(text); t.setTextSize(size); t.setTextColor(color);
-        t.setGravity(Gravity.CENTER_VERTICAL);
+        t.setGravity(android.view.Gravity.CENTER_VERTICAL);
         return t;
     }
 
@@ -400,10 +400,10 @@ public class MainActivity extends AppCompatActivity {
         drawer.setElevation(dp(18));
 
         LinearLayout header=new LinearLayout(this);
-        header.setGravity(Gravity.CENTER_VERTICAL);
+        header.setGravity(android.view.Gravity.CENTER_VERTICAL);
         TextView logo=drawerText("JARVIS",24,Color.WHITE);logo.setTypeface(null,1);
         header.addView(logo,new LinearLayout.LayoutParams(0,dp(58),1));
-        TextView close=drawerText("×",32,Color.WHITE);close.setGravity(Gravity.CENTER);
+        TextView close=drawerText("×",32,Color.WHITE);close.setGravity(android.view.Gravity.CENTER);
         header.addView(close,new LinearLayout.LayoutParams(dp(48),dp(58)));
         drawer.addView(header);
         close.setOnClickListener(v->closeHistoryDrawer());
@@ -411,7 +411,7 @@ public class MainActivity extends AppCompatActivity {
         Button newChat=new Button(this);
         newChat.setText("＋  New chat");
         newChat.setTextSize(14); newChat.setAllCaps(false); newChat.setTextColor(Color.WHITE);
-        newChat.setGravity(Gravity.CENTER_VERTICAL);
+        newChat.setGravity(android.view.Gravity.CENTER_VERTICAL);
         newChat.setBackground(drawerBg(Color.rgb(28,27,38),18));
         drawer.addView(newChat,new LinearLayout.LayoutParams(-1,dp(50)));
         newChat.setOnClickListener(v->{transcript.setText("");transcript.setVisibility(View.GONE);subtitle.setText("বলুন — আমি শুনছি • বাংলা / English");closeHistoryDrawer();});
@@ -419,7 +419,7 @@ public class MainActivity extends AppCompatActivity {
         Button textChat=new Button(this);
         textChat.setText("▣  Text Chat");
         textChat.setTextSize(14); textChat.setAllCaps(false); textChat.setTextColor(Color.BLACK);
-        textChat.setGravity(Gravity.CENTER_VERTICAL);
+        textChat.setGravity(android.view.Gravity.CENTER_VERTICAL);
         textChat.setBackground(drawerBg(Color.rgb(0,225,255),18));
         LinearLayout.LayoutParams tcp=new LinearLayout.LayoutParams(-1,dp(50));
         tcp.setMargins(0,dp(9),0,dp(10));
@@ -436,7 +436,7 @@ public class MainActivity extends AppCompatActivity {
         drawer.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
 
         TextView clear=drawerText("⌫  Clear history",13,Color.rgb(190,185,200));
-        clear.setGravity(Gravity.CENTER_VERTICAL);
+        clear.setGravity(android.view.Gravity.CENTER_VERTICAL);
         clear.setPadding(dp(10),dp(12),dp(10),dp(12));
         drawer.addView(clear,new LinearLayout.LayoutParams(-1,dp(48)));
         clear.setOnClickListener(v->new AlertDialog.Builder(this).setTitle("Clear history?")
@@ -445,7 +445,7 @@ public class MainActivity extends AppCompatActivity {
                 .setPositiveButton("Clear",(d,w)->{JarvisHistory.clear(this);refreshHistoryDrawer();}).show());
 
         int width=Math.min(dp(330),(int)(getResources().getDisplayMetrics().widthPixels*0.86f));
-        FrameLayout.LayoutParams drawerParams=new FrameLayout.LayoutParams(width,-1,Gravity.START);
+        FrameLayout.LayoutParams drawerParams=new FrameLayout.LayoutParams(width,-1,android.view.Gravity.START);
         mainRoot.addView(drawer,drawerParams);
         historyDrawer=drawer;
         drawer.setTranslationX(-width);
