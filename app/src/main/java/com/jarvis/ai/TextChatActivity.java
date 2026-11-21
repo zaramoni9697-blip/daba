@@ -223,11 +223,13 @@ private void sendMessage(){
             return;
         }
 
+        final String finalPrompt=q+fileContext;
+        final String finalQuestion=q;
         new Thread(()->{
-            String answer=engine.ask(q+fileContext);
+            String answer=engine.ask(finalPrompt);
             if(answer==null||answer.trim().isEmpty())answer="দুঃখিত, এখন উত্তর দিতে পারছি না।";
             final String finalAnswer=answer;
-            runOnUiThread(()->finishAction(q,finalAnswer));
+            runOnUiThread(()->finishAction(finalQuestion,finalAnswer));
         }).start();
     }
 
