@@ -16,6 +16,8 @@ public class TextChatActivity extends AppCompatActivity {
     private EditText input;
     private JarvisEngine engine;
     private JarvisTts tts;
+    private JarvisCommandRouter router;
+    private JarvisActionExecutor executor;
     private int BG=Color.rgb(10,9,14), CARD=Color.rgb(25,23,32), MUTED=Color.rgb(150,145,160), CYAN=Color.rgb(0,225,255);
 
     private int dp(float v){return (int)(v*getResources().getDisplayMetrics().density+0.5f);}
@@ -25,6 +27,8 @@ public class TextChatActivity extends AppCompatActivity {
     @Override protected void onCreate(Bundle b){
         super.onCreate(b);
         engine=new JarvisEngine(this);
+        router=new JarvisCommandRouter();
+        executor=new JarvisActionExecutor(this);
         tts=new JarvisTts(this);
 
         LinearLayout root=new LinearLayout(this);
@@ -81,22 +85,61 @@ public class TextChatActivity extends AppCompatActivity {
         }
     }
 
+    private boolean isMessageAction(JarvisAction.Type t){
+        return t==JarvisAction.Type.WHATSAPP_SEND||t==JarvisAction.Type.MESSENGER_SEND||t==JarvisAction.Type.SMS;
+    }
+
+    private void finishAction(String q,String answer){
+        if(messages.getChildCount()>0)messages.removeViewAt(messages.getChildCount()-1);
+        addBubble("JARVIS",answer,false);
+        JarvisHistory.add(this,q,answer);
+        if(!"false".equals(SecureStore.get(this,"voice_replies")))tts.speak(answer);
+    }
+
     private void sendMessage(){
         String q=input.getText().toString().trim();
         if(q.isEmpty())return;
         input.setText("");
         addBubble("YOU",q,true);
         addBubble("JARVIS","Thinking…",false);
+
+        JarvisAction action=router.route(q);
+        if(isMessageAction(action.type)){
+            String[] parts=executor.parseMessageForVoice(action.value);
+            if(parts[0].trim().isEmpty()||parts[1].trim().isEmpty()){
+                finishAction(q,"Contact name এবং message দুটোই বলুন।");
+                return;
+            }
+            java.util.List<JarvisActionExecutor.ContactCandidate> matches=executor.findContactCandidates(parts[0]);
+            if(matches.size()>1){
+                StringBuilder b=new StringBuilder("একই নামে একাধিক contact পেয়েছি। কোনজনকে message দেব? ");
+                for(int i=0;i<matches.size();i++){
+                    if(i>0)b.append(" অথবা ");
+                    b.append(i+1).append(" নম্বর, ").append(matches.get(i).display());
+                }
+                finishAction(q,b.toString());
+                return;
+            }
+            if(matches.size()==1){
+                action=new JarvisAction(action.type,executor.messageCommandForContact(matches.get(0).name,parts[1]),true);
+            }
+            final JarvisAction confirmedAction=action;
+            new android.app.AlertDialog.Builder(this)
+                    .setTitle("JARVIS Confirmation")
+                    .setMessage("এই contact-কে message পাঠানোর জন্য প্রস্তুত:\n"+parts[0]+"\n\n"+parts[1])
+                    .setNegativeButton("Cancel",(d,w)->finishAction(q,"Message cancelled."))
+                    .setPositiveButton("Confirm",(d,w)->{
+                        String answer=executor.execute(confirmedAction);
+                        finishAction(q,answer);
+                    }).show();
+            return;
+        }
+
         new Thread(()->{
             String answer=engine.ask(q);
             if(answer==null||answer.trim().isEmpty())answer="দুঃখিত, এখন উত্তর দিতে পারছি না।";
             final String finalAnswer=answer;
-            runOnUiThread(()->{
-                if(messages.getChildCount()>0)messages.removeViewAt(messages.getChildCount()-1);
-                addBubble("JARVIS",finalAnswer,false);
-                JarvisHistory.add(this,q,finalAnswer);
-                if(!"false".equals(SecureStore.get(this,"voice_replies")))tts.speak(finalAnswer);
-            });
+            runOnUiThread(()->finishAction(q,finalAnswer));
         }).start();
     }
 
