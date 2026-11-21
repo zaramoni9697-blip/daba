@@ -75,6 +75,22 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    @Override protected void onNewIntent(Intent intent){
+        super.onNewIntent(intent);
+        setIntent(intent);
+        String wakeCommand=intent.getStringExtra("wake_command");
+        if(wakeCommand!=null && !wakeCommand.trim().isEmpty()){
+            final String command=wakeCommand.trim();
+            handler.removeCallbacksAndMessages(null);
+            stopInAppRecognizer();
+            transcript.setText(command);
+            transcript.setVisibility(View.VISIBLE);
+            handler.postDelayed(()->execute(command),250);
+        }else if(intent.getBooleanExtra("wake",false) && activityVisible){
+            handler.postDelayed(this::listen,300);
+        }
+    }
+
     @Override protected void onResume(){
         super.onResume();
         activityVisible=true;
