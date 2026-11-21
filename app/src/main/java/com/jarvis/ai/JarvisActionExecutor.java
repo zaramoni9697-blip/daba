@@ -172,11 +172,24 @@ public class JarvisActionExecutor {
     }
     private String[] parseMessage(String raw){
         String s=raw==null?"":raw.trim();
-        s=s.replaceFirst("(?i)^(sms|text|message|মেসেজ)\\s*","").trim();
+        s=s.replaceAll("(?i)\\b(whatsapp|messenger)\\b"," ").trim();
         int k=s.indexOf("কে");
-        if(k>0)return new String[]{s.substring(0,k).trim(),s.substring(k+2).trim()};
+        if(k>0){
+            String contact=s.substring(0,k).trim();
+            String body=s.substring(k+2).trim();
+            body=body.replaceFirst("^(?i:মেসেজ|message|sms)\\s*(দাও|দাও তো|পাঠাও|send)?\\s*","").trim();
+            return new String[]{contact,body};
+        }
+        java.util.regex.Matcher m=java.util.regex.Pattern.compile("(?i)message\\s+to\\s+(.+?)\\s+(?:saying|that says|:)\\s*(.+)$").matcher(s);
+        if(m.find())return new String[]{m.group(1).trim(),m.group(2).trim()};
+        m=java.util.regex.Pattern.compile("(?i)send\\s+(?:a\\s+)?message\\s+to\\s+(.+?)\\s+(?:saying|that says|:)\\s*(.+)$").matcher(s);
+        if(m.find())return new String[]{m.group(1).trim(),m.group(2).trim()};
         int t=s.toLowerCase(Locale.ROOT).indexOf(" to ");
-        if(t>0)return new String[]{s.substring(0,t).trim(),s.substring(t+4).trim()};
+        if(t>0){
+            String left=s.substring(0,t).trim();
+            String contact=left.replaceFirst("(?i)^(message|send a message|text)\\s*","").trim();
+            return new String[]{contact,s.substring(t+4).trim()};
+        }
         return new String[]{s,""};
     }
     private String resolveContactNumber(String q){
