@@ -47,7 +47,7 @@ public class JarvisActionExecutor {
             case WHATSAPP_MESSAGE:return openMessagingApp("com.whatsapp");
             case MESSENGER_MESSAGE:return openMessagingApp("com.facebook.orca");
             case WHATSAPP_SEND:return sendWhatsAppMessage(a.value);
-            case MESSENGER_SEND:return openMessagingApp("com.facebook.orca");
+            case MESSENGER_SEND:return sendMessengerMessage(a.value);
             case CALL:return callContactOrNumber(a.value);
             case CLICK_TEXT:return JarvisAccessibilityService.clickText(a.value)?"Clicked "+a.value+".":needAccessibility();
             case TYPE_TEXT:return JarvisAccessibilityService.typeText(a.value)?"Typed it.":needAccessibility();
@@ -108,6 +108,37 @@ public class JarvisActionExecutor {
         }catch(Exception ex){
             return "I couldn't start the call.";
         }
+    }
+
+
+    private String sendMessengerMessage(String raw){
+        String[] p=parseMessage(raw);
+        if(p[0].trim().isEmpty()||p[1].trim().isEmpty())return "Please say the contact name and message.";
+        if(!JarvisAccessibilityService.isEnabled())return needAccessibility();
+        try{
+            Intent i=context.getPackageManager().getLaunchIntentForPackage("com.facebook.orca");
+            if(i==null)return "Messenger is not installed.";
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            context.startActivity(i);
+            final String contact=p[0].trim();
+            final String message=p[1].trim();
+            new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(()->{
+                JarvisAccessibilityService.clickTextContains("search");
+                JarvisAccessibilityService.clickTextContains("খুঁজুন");
+            },900);
+            new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(()->{
+                JarvisAccessibilityService.focusInput();
+                JarvisAccessibilityService.typeText(contact);
+            },1300);
+            new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(()->{
+                JarvisAccessibilityService.clickTextContains(contact);
+            },2200);
+            new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(()->{
+                JarvisAccessibilityService.focusInput();
+                JarvisAccessibilityService.typeText(message);
+            },3000);
+            return "Messenger opened. I found the contact flow and typed the message. Please review and tap Send.";
+        }catch(Exception e){return "Could not automate Messenger. Please keep JARVIS Accessibility enabled.";}
     }
 
     private String sendWhatsAppMessage(String raw){
