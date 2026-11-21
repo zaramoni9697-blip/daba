@@ -65,8 +65,14 @@ public class MainActivity extends AppCompatActivity {
             handler.postDelayed(this::listen,500);
         }
 
-        if(getIntent().getBooleanExtra("wake",false))
+        String wakeCommand=getIntent().getStringExtra("wake_command");
+        if(wakeCommand!=null && !wakeCommand.trim().isEmpty()){
+            transcript.setText(wakeCommand.trim());
+            transcript.setVisibility(View.VISIBLE);
+            handler.postDelayed(()->execute(wakeCommand.trim()),450);
+        }else if(getIntent().getBooleanExtra("wake",false)){
             handler.postDelayed(this::listen,700);
+        }
     }
 
     @Override protected void onResume(){
