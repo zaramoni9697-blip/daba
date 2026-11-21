@@ -64,15 +64,50 @@ public class TextChatActivity extends AppCompatActivity {
         root.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
 
         LinearLayout composer=new LinearLayout(this);
-        composer.setPadding(dp(10),dp(8),dp(10),dp(12));composer.setGravity(Gravity.CENTER_VERTICAL);
-        input=new EditText(this);input.setHint("Message JARVIS…");input.setHintTextColor(MUTED);input.setTextColor(Color.WHITE);
-        input.setTextSize(15);input.setSingleLine(false);input.setMaxLines(4);input.setPadding(dp(16),0,dp(16),0);input.setBackground(bg(CARD,24));
-        composer.addView(input,new LinearLayout.LayoutParams(0,dp(56),1));
-        Button attach=new Button(this);attach.setText("+");attach.setTextColor(CYAN);attach.setTextSize(24);attach.setAllCaps(false);attach.setBackground(bg(CARD,24));
-        LinearLayout.LayoutParams ap=new LinearLayout.LayoutParams(dp(56),dp(56));ap.setMargins(0,0,dp(8),0);composer.addView(attach,ap);
+        composer.setPadding(dp(10),dp(8),dp(10),dp(14));
+        composer.setGravity(Gravity.CENTER_VERTICAL);
+        composer.setBackgroundColor(BG);
+
+        LinearLayout inputShell=new LinearLayout(this);
+        inputShell.setOrientation(LinearLayout.HORIZONTAL);
+        inputShell.setGravity(Gravity.CENTER_VERTICAL);
+        inputShell.setPadding(dp(6),dp(6),dp(6),dp(6));
+        inputShell.setBackground(bg(Color.rgb(28,27,35),28));
+
+        Button attach=new Button(this);
+        attach.setText("+");
+        attach.setTextColor(Color.WHITE);
+        attach.setTextSize(25);
+        attach.setAllCaps(false);
+        attach.setPadding(0,0,0,0);
+        attach.setBackground(bg(Color.TRANSPARENT,22));
+        inputShell.addView(attach,new LinearLayout.LayoutParams(dp(48),dp(48)));
         attachButton=attach;
-        Button send=new Button(this);send.setText("➤");send.setTextColor(Color.BLACK);send.setTextSize(18);send.setAllCaps(false);send.setBackground(bg(CYAN,24));
-        LinearLayout.LayoutParams sp=new LinearLayout.LayoutParams(dp(56),dp(56));sp.setMargins(dp(8),0,0,0);composer.addView(send,sp);
+
+        input=new EditText(this);
+        input.setHint("Message JARVIS…");
+        input.setHintTextColor(Color.rgb(135,132,145));
+        input.setTextColor(Color.WHITE);
+        input.setTextSize(16);
+        input.setSingleLine(false);
+        input.setMaxLines(5);
+        input.setMinLines(1);
+        input.setGravity(Gravity.CENTER_VERTICAL);
+        input.setPadding(dp(8),0,dp(8),0);
+        input.setBackgroundColor(Color.TRANSPARENT);
+        inputShell.addView(input,new LinearLayout.LayoutParams(0,dp(52),1));
+
+        Button send=new Button(this);
+        send.setText("↑");
+        send.setTextColor(Color.BLACK);
+        send.setTextSize(23);
+        send.setTypeface(null,1);
+        send.setAllCaps(false);
+        send.setPadding(0,0,0,0);
+        send.setBackground(bg(CYAN,24));
+        inputShell.addView(send,new LinearLayout.LayoutParams(dp(48),dp(48)));
+
+        composer.addView(inputShell,new LinearLayout.LayoutParams(-1,-2));
         root.addView(composer);
         setContentView(root);
 
