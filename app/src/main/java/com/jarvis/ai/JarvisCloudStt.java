@@ -58,7 +58,7 @@ public final class JarvisCloudStt {
                             if(speechStarted==0)speechStarted=now;
                             lastVoice=now;
                         }
-                        if(speechStarted>0 && now-lastVoice>10000 && now-speechStarted>1000)break;
+                        if(speechStarted>0 && now-lastVoice>5000 && now-speechStarted>1000)break;
                     }
                 }
                 if(speechStarted==0 || total<rate*2) return null;
@@ -98,7 +98,8 @@ public final class JarvisCloudStt {
         c.setRequestProperty("Content-Type","multipart/form-data; boundary="+boundary);
         try(DataOutputStream o=new DataOutputStream(c.getOutputStream())){
             part(o,boundary,"model","whisper-large-v3-turbo");
-            part(o,boundary,"prompt","JARVIS voice command. Preserve Bengali and English words exactly. Common words: hello, hey jarvis, open, Facebook, YouTube, settings, home, back, volume, Wi-Fi.");
+            part(o,boundary,"prompt","Mixed Bengali-English JARVIS voice command. Transcribe exactly what is spoken. Do NOT translate or transliterate Bengali into English. Keep Bengali words in Bengali script and English names/brand names in English when spoken. Preserve names such as Obito Uchiha, Riyad, Messenger, WhatsApp, Facebook, YouTube. Common Bengali commands: মেসেজ দাও, কে, ম্যাসেঞ্জারে গিয়ে, খুলে দাও, বাজারে আসো, কেমন আছো।");
+            part(o,boundary,"temperature","0.0");
             o.writeBytes("--"+boundary+"\r\n");
             o.writeBytes("Content-Disposition: form-data; name=\"file\"; filename=\"voice.wav\"\r\n");
             o.writeBytes("Content-Type: audio/wav\r\n\r\n");
