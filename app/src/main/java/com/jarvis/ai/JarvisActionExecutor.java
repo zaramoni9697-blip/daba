@@ -144,12 +144,20 @@ public class JarvisActionExecutor {
     }
 
     private String sendSms(String raw){
-        String text=raw==null?"" : raw.trim();
+        String[] p=parseMessage(raw);
+        String number=resolveContactNumber(p[0]);
+        if(number==null)return "Contact not found. Please save the phone number first.";
+        String text=p[1];
         Intent i=new Intent(Intent.ACTION_SENDTO);
-        i.setData(Uri.parse("smsto:"));
+        i.setData(Uri.parse("smsto:"+Uri.encode(number)));
         i.putExtra("sms_body",text);
         i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        try{context.startActivity(i);return "SMS message is ready for "+p[0]+". Please review and tap Send.";}catch(Exception e){return "SMS app unavailable.";}
+        try{
+            context.startActivity(i);
+            return "SMS message is ready for "+p[0]+". Please review and tap Send.";
+        }catch(Exception e){
+            return "SMS app unavailable.";
+        }
     }
     private String needAccessibility(){
         context.startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
