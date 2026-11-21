@@ -404,12 +404,13 @@ public class MainActivity extends AppCompatActivity {
                 a=new JarvisAction(a.type,executor.messageCommandForContact(matches.get(0).name,parts[1]),a.confirmation);
             }
         }
-        if(a.confirmation)
+        if(a.confirmation){
+            final JarvisAction confirmedAction=a;
             new AlertDialog.Builder(this).setTitle("JARVIS Confirmation")
                     .setMessage("এই কাজটি করতে অনুমতি দেবেন?\n"+cmd)
                     .setNegativeButton("Cancel",(d,w)->restartListening())
-                    .setPositiveButton("Confirm",(d,w)->run(a)).show();
-        else run(a);
+                    .setPositiveButton("Confirm",(d,w)->run(confirmedAction)).show();
+        }else run(a);
     }
 
     private void run(JarvisAction a){
