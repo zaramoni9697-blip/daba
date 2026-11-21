@@ -57,8 +57,26 @@ public class JarvisWakeService extends Service {
         recognizer = SpeechRecognizer.createSpeechRecognizer(this);
         recognizer.setRecognitionListener(new RecognitionListener() {
             public void onResults(Bundle b) { check(b); scheduleListen(500); }
-            public void onPartialResults(Bundle b) { check(b); }
-            public void onError(int e) { scheduleListen(700); }
+            public void onPartialResults(Bundle b) {
+                // Only wake phrases are accepted from partial speech.
+                // Ordinary commands wait for final results so full sentences are heard.
+                ArrayList<String> results = b.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+                if (results != null) {
+                    for (String s : results) {
+                        if (isWakePhrase(s)) {
+                            lastCommandAt = System.currentTimeMillis();
+                            triggerWake(stripWakePhrase(s));
+                            return;
+                        }
+                    }
+                }
+            }
+            public void onError(int e) {
+                // Recreate SpeechRecognizer after background errors; reusing a
+                // failed instance can stop outside-app listening after one command.
+                resetRecognizer();
+                scheduleListen(700);
+            }
             public void onReadyForSpeech(Bundle b) {}
             public void onBeginningOfSpeech() {}
             public void onRmsChanged(float r) {}
@@ -110,12 +128,46 @@ public class JarvisWakeService extends Service {
                 triggerWake(command);
                 return;
             }
+            // Final results only: direct phone commands work while another app
+            // is in the foreground, without requiring JARVIS UI to be visible.
             if(isDirectCommand(s)){
                 lastCommandAt=System.currentTimeMillis();
                 triggerWake(s);
                 return;
             }
         }
+    }
+
+    private void resetRecognizer() {
+        if (recognizer != null) {
+            try { recognizer.cancel(); } catch (Exception ignored) {}
+            try { recognizer.destroy(); } catch (Exception ignored) {}
+            recognizer = null;
+        }
+        if (!running || !SpeechRecognizer.isRecognitionAvailable(this)) return;
+        recognizer = SpeechRecognizer.createSpeechRecognizer(this);
+        recognizer.setRecognitionListener(new RecognitionListener() {
+            public void onResults(Bundle b) { check(b); scheduleListen(500); }
+            public void onPartialResults(Bundle b) {
+                ArrayList<String> results = b.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+                if (results != null) {
+                    for (String s : results) {
+                        if (isWakePhrase(s)) {
+                            lastCommandAt = System.currentTimeMillis();
+                            triggerWake(stripWakePhrase(s));
+                            return;
+                        }
+                    }
+                }
+            }
+            public void onError(int e) { resetRecognizer(); scheduleListen(700); }
+            public void onReadyForSpeech(Bundle b) {}
+            public void onBeginningOfSpeech() {}
+            public void onRmsChanged(float r) {}
+            public void onBufferReceived(byte[] b) {}
+            public void onEndOfSpeech() {}
+            public void onEvent(int a, Bundle b) {}
+        });
     }
 
     private boolean isWakePhrase(String value) {
@@ -154,6 +206,11 @@ public class JarvisWakeService extends Service {
 
     private void triggerWake(String command) {
         handler.removeCallbacksAndMessages(null);
+        if (recognizer != null) {
+            try { recognizer.cancel(); } catch (Exception ignored) {}
+            try { recognizer.destroy(); } catch (Exception ignored) {}
+            recognizer = null;
+        }
         Intent in = new Intent(this, MainActivity.class);
         in.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
         in.putExtra("wake", true);
