@@ -12,10 +12,10 @@ import android.widget.*;
 import androidx.appcompat.app.AppCompatActivity;
 
 public class SettingsActivity extends AppCompatActivity {
-    private LinearLayout root, content, apiPanel;
+    private LinearLayout root, content, apiPanel, websitePanel;
     private Spinner provider, speechLanguage;
     private EditText gemini, openai, groq, openrouter, deepseek, xai, custom, endpoint;
-    private EditText openrouterModel, deepseekModel, xaiModel;
+    private EditText openrouterModel, deepseekModel, xaiModel, githubPagesToken, githubPagesRepo;
     private Switch autoFailover, voiceReplies, saveMemory, farVoice;
     private TextView wakeState, phoneState, modeTitle, modeHint, micDiagnostic;\n    private LinearLayout micPanel;\n    private JarvisMicDiagnostic micTest;
     private final String[] providers={"Gemini","OpenAI-compatible","Groq","OpenRouter","DeepSeek","Grok","Custom"};
@@ -57,7 +57,7 @@ public class SettingsActivity extends AppCompatActivity {
         for(String n:names){Button b=action(n,Color.rgb(29,27,39));LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(0,dp(46),1);p.setMargins(dp(3),0,dp(3),0);modes.addView(b,p);b.setOnClickListener(v->showMode(n));}root.addView(modes);
 
         content=new LinearLayout(this);content.setOrientation(LinearLayout.VERTICAL);root.addView(content);
-        buildGeneral();buildApi();buildVoice();buildPhoneControl();
+        buildGeneral();buildApi();buildWebsitePublishing();buildVoice();buildPhoneControl();
 
         LinearLayout saveCard=card();
         TextView safe=tv("All changes are stored locally. API keys are encrypted on this device.",11,MUTED);saveCard.addView(safe);
@@ -78,6 +78,19 @@ public class SettingsActivity extends AppCompatActivity {
         autoFailover=new Switch(this);autoFailover.setText("Automatic AI failover");autoFailover.setTextColor(Color.WHITE);autoFailover.setTextSize(14);autoFailover.setChecked(!"false".equals(SecureStore.get(this,"auto_failover")));c.addView(autoFailover);
         saveMemory=new Switch(this);saveMemory.setText("Conversation memory");saveMemory.setTextColor(Color.WHITE);saveMemory.setTextSize(14);saveMemory.setChecked(!"false".equals(SecureStore.get(this,"memory_enabled")));c.addView(saveMemory);
         generalPanel.addView(c);content.addView(generalPanel);
+    }
+
+    private void buildWebsitePublishing(){
+        websitePanel=new LinearLayout(this);websitePanel.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout c=card();c.addView(label("WEBSITE PUBLISHING"));
+        c.addView(tv("Text chat থেকে সম্পূর্ণ website বানিয়ে public link দিতে GitHub Pages ব্যবহার হবে.",14,Color.WHITE));
+        githubPagesToken=key("GitHub fine-grained token","github_pages_token");
+        githubPagesRepo=field("GitHub repository • owner/repository","github_pages_repo");
+        String repo=SecureStore.get(this,"github_pages_repo");
+        if(repo==null||repo.trim().isEmpty())githubPagesRepo.setText("zaramoni9697-blip/daba");
+        add(c,githubPagesToken,52);add(c,githubPagesRepo,52);
+        c.addView(tv("Token permission: Contents → Read and write; Pages → Read and write; Administration → Read and write. GitHub Free হলে repository public হতে হবে.",10,MUTED));
+        websitePanel.addView(c);content.addView(websitePanel);
     }
 
     private void buildApi(){
@@ -129,6 +142,7 @@ public class SettingsActivity extends AppCompatActivity {
 
     private void buildMicDiagnostic(){
         LinearLayout d=card();
+        micPanel=d;
         d.addView(label("MICROPHONE DIAGNOSTIC"));
         d.addView(tv("এখানে JARVIS-এর microphone capture, noise floor এবং Android audio effects সরাসরি পরীক্ষা করুন।",12,MUTED));
         micDiagnostic=tv("● READY\nPermission এবং microphone test শুরু করুন.",12,Color.WHITE);
@@ -176,6 +190,7 @@ public class SettingsActivity extends AppCompatActivity {
         generalPanel.setVisibility("GENERAL".equals(mode)?View.VISIBLE:View.GONE);
         apiPanel.setVisibility("AI / API".equals(mode)?View.VISIBLE:View.GONE);
         voicePanel.setVisibility("VOICE".equals(mode)?View.VISIBLE:View.GONE);\n        if(micPanel!=null)micPanel.setVisibility("VOICE".equals(mode)?View.VISIBLE:View.GONE);
+        websitePanel.setVisibility("AI / API".equals(mode)?View.VISIBLE:View.GONE);
         phonePanel.setVisibility("PHONE".equals(mode)?View.VISIBLE:View.GONE);
         modeTitle.setText(mode+" MODE");
         if("GENERAL".equals(mode))modeHint.setText("Language, memory and JARVIS behaviour.");
@@ -186,7 +201,7 @@ public class SettingsActivity extends AppCompatActivity {
     }
 
     private void saveAll(){
-        putIf(gemini,"gemini");putIf(openai,"openai");putIf(groq,"groq");putIf(openrouter,"openrouter");putIf(deepseek,"deepseek");putIf(xai,"xai");putIf(custom,"custom");putText(openrouterModel,"openrouter_model");putText(deepseekModel,"deepseek_model");putText(xaiModel,"xai_model");putText(endpoint,"custom_endpoint");
+        putIf(gemini,"gemini");putIf(openai,"openai");putIf(groq,"groq");putIf(openrouter,"openrouter");putIf(deepseek,"deepseek");putIf(xai,"xai");putIf(custom,"custom");putText(openrouterModel,"openrouter_model");putText(deepseekModel,"deepseek_model");putText(xaiModel,"xai_model");putText(endpoint,"custom_endpoint");putIf(githubPagesToken,"github_pages_token");putText(githubPagesRepo,"github_pages_repo");
         SecureStore.put(this,"primary",provider.getSelectedItem().toString());
         SecureStore.put(this,"speech_language",speechLanguage.getSelectedItemPosition()==1?"bn-BD":speechLanguage.getSelectedItemPosition()==2?"en-US":"AUTO");
         SecureStore.put(this,"auto_failover",String.valueOf(autoFailover.isChecked()));SecureStore.put(this,"voice_replies",String.valueOf(voiceReplies.isChecked()));SecureStore.put(this,"memory_enabled",String.valueOf(saveMemory.isChecked()));SecureStore.put(this,"far_voice",String.valueOf(farVoice.isChecked()));
