@@ -72,20 +72,20 @@ public final class JarvisCloudStt {
                         // Build an adaptive noise floor instead of using one fixed
                         // threshold. This is much more tolerant of fans, traffic,
                         // TV noise and people talking in the background.
-                        if(calibrationFrames<6){
-                            noiseFloor=(noiseFloor*0.85)+(avg*0.15);
+                        if(calibrationFrames<2){
+                            noiseFloor=(noiseFloor*0.70)+(avg*0.30);
                             calibrationFrames++;
                         }else{
-                            noiseFloor=(noiseFloor*0.998)+(Math.min(avg,noiseFloor*1.5)*0.002);
+                            noiseFloor=(noiseFloor*0.995)+(Math.min(avg,noiseFloor*1.35)*0.005);
                         }
-                        double speechThreshold=Math.max(220.0,noiseFloor*1.30);
+                        double speechThreshold=Math.max(120.0,noiseFloor*1.12);
                         if(avg>speechThreshold){
                             if(speechStarted==0)speechStarted=now;
                             lastVoice=now;
                         }
                         // Keep listening long enough for a complete sentence, but
                         // stop after real silence so noisy rooms don't run forever.
-                        if(speechStarted>0 && now-lastVoice>3000 && now-speechStarted>900)break;
+                        if(speechStarted>0 && now-lastVoice>3000 && now-speechStarted>700)break;
                     }
                 }
                 if(speechStarted==0 || total<rate) return null;
