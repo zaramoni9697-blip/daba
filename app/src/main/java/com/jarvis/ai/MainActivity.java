@@ -37,6 +37,9 @@ public class MainActivity extends AppCompatActivity {
     private LinearLayout historyList;
     private View drawerOverlay;
     private View historyDrawer;
+    private JarvisAction.Type pendingMessageType;
+    private String pendingMessageBody;
+    private java.util.List<JarvisActionExecutor.ContactCandidate> pendingMessageCandidates;
 
     @Override protected void onCreate(Bundle b){
         super.onCreate(b);
@@ -325,9 +328,82 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private boolean isMessageAction(JarvisAction.Type t){
+        return t==JarvisAction.Type.WHATSAPP_SEND||t==JarvisAction.Type.MESSENGER_SEND||t==JarvisAction.Type.SMS;
+    }
+
+    private boolean handlePendingContactSelection(String cmd){
+        if(pendingMessageCandidates==null||pendingMessageCandidates.isEmpty())return false;
+        String s=cmd==null?"":cmd.trim().toLowerCase(Locale.ROOT);
+        int index=-1;
+        String[] ord={"প্রথম","১ম","এক","first","1","one"};
+        String[] ord2={"দ্বিতীয়","দ্বিতীয়","২য়","দুই","second","2","two"};
+        String[] ord3={"তৃতীয়","তৃতীয়","৩য়","তিন","third","3","three"};
+        String[] ord4={"চতুর্থ","৪র্থ","চার","fourth","4","four"};
+        String[][] groups={ord,ord2,ord3,ord4};
+        for(int i=0;i<groups.length;i++){
+            for(String x:groups[i])if(s.contains(x)){index=i;break;}
+            if(index>=0)break;
+        }
+        if(index<0){
+            for(int i=0;i<pendingMessageCandidates.size();i++){
+                String n=pendingMessageCandidates.get(i).name.toLowerCase(Locale.ROOT);
+                String tail=pendingMessageCandidates.get(i).number==null?"":pendingMessageCandidates.get(i).number.replaceAll("[^0-9]","");
+                if(s.contains(n)||(!tail.isEmpty()&&s.contains(tail.substring(Math.max(0,tail.length()-4))))){index=i;break;}
+            }
+        }
+        if(index<0||index>=pendingMessageCandidates.size()){
+            speakDisambiguation();
+            return true;
+        }
+        JarvisActionExecutor.ContactCandidate chosen=pendingMessageCandidates.get(index);
+        JarvisAction a=new JarvisAction(pendingMessageType,
+                executor.messageCommandForContact(chosen.name,pendingMessageBody),true);
+        pendingMessageType=null;
+        pendingMessageBody=null;
+        pendingMessageCandidates=null;
+        transcript.setText(cmd);
+        run(a);
+        return true;
+    }
+
+    private void speakDisambiguation(){
+        StringBuilder b=new StringBuilder("একই নামে একাধিক contact পেয়েছি। কোনজনকে message দেব? ");
+        for(int i=0;i<pendingMessageCandidates.size();i++){
+            if(i>0)b.append(" অথবা ");
+            b.append(i+1).append(" নম্বর, ").append(pendingMessageCandidates.get(i).display());
+        }
+        String q=b.toString();
+        status.setText(q);
+        subtitle.setText(q);
+        if(!"false".equals(SecureStore.get(this,"voice_replies")))tts.speak(q);
+        restartListening(700);
+    }
+
     private void execute(String cmd){
         cmd=normalizeSpeech(cmd);
+        if(handlePendingContactSelection(cmd))return;
         JarvisAction a=router.route(cmd);
+        if(isMessageAction(a.type)){
+            String[] parts=executor.parseMessageForVoice(a.value);
+            if(parts[0].trim().isEmpty()||parts[1].trim().isEmpty()){
+                status.setText("Contact name এবং message দুটোই বলুন।");
+                if(!"false".equals(SecureStore.get(this,"voice_replies")))tts.speak("Contact name এবং message দুটোই বলুন।");
+                restartListening(700);
+                return;
+            }
+            java.util.List<JarvisActionExecutor.ContactCandidate> matches=executor.findContactCandidates(parts[0]);
+            if(matches.size()>1){
+                pendingMessageType=a.type;
+                pendingMessageBody=parts[1];
+                pendingMessageCandidates=matches;
+                speakDisambiguation();
+                return;
+            }
+            if(matches.size()==1){
+                a=new JarvisAction(a.type,executor.messageCommandForContact(matches.get(0).name,parts[1]),a.confirmation);
+            }
+        }
         if(a.confirmation)
             new AlertDialog.Builder(this).setTitle("JARVIS Confirmation")
                     .setMessage("এই কাজটি করতে অনুমতি দেবেন?\n"+cmd)
