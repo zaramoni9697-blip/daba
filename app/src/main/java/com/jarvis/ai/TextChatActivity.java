@@ -94,6 +94,7 @@ public class TextChatActivity extends AppCompatActivity {
             runOnUiThread(()->{
                 if(messages.getChildCount()>0)messages.removeViewAt(messages.getChildCount()-1);
                 addBubble("JARVIS",finalAnswer,false);
+                JarvisHistory.add(this,q,finalAnswer);
                 if(!"false".equals(SecureStore.get(this,"voice_replies")))tts.speak(finalAnswer);
             });
         }).start();
