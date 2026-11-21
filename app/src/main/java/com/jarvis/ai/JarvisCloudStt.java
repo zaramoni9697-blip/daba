@@ -33,7 +33,7 @@ public final class JarvisCloudStt {
                 writeHeader(out,0,rate,1,16);
                 record.startRecording();
                 long start=System.currentTimeMillis();
-                long maxEnd=start+9000;
+                long maxEnd=start+30000;
                 long speechStarted=0;
                 long lastVoice=start;
                 byte[] b=new byte[4096]; int total=0;
@@ -58,7 +58,7 @@ public final class JarvisCloudStt {
                             if(speechStarted==0)speechStarted=now;
                             lastVoice=now;
                         }
-                        if(speechStarted>0 && now-lastVoice>1200 && now-speechStarted>900)break;
+                        if(speechStarted>0 && now-lastVoice>10000 && now-speechStarted>1000)break;
                     }
                 }
                 if(speechStarted==0 || total<rate*2) return null;
