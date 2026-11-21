@@ -147,8 +147,7 @@ public class SettingsActivity extends AppCompatActivity {
         micPanel=d;
         d.addView(label("MICROPHONE DIAGNOSTIC"));
         d.addView(tv("এখানে JARVIS-এর microphone capture, noise floor এবং Android audio effects সরাসরি পরীক্ষা করুন।",12,MUTED));
-        micDiagnostic=tv("● READY
-Permission এবং microphone test শুরু করুন.",12,Color.WHITE);
+        micDiagnostic=tv("● READY\nPermission এবং microphone test শুরু করুন.",12,Color.WHITE);
         micDiagnostic.setGravity(Gravity.TOP);
         micDiagnostic.setPadding(0,dp(10),0,dp(10));
         d.addView(micDiagnostic,new LinearLayout.LayoutParams(-1,dp(150)));
