@@ -150,7 +150,7 @@ public class TextChatActivity extends AppCompatActivity {
         if(!"false".equals(SecureStore.get(this,"voice_replies")))tts.speak(answer);
     }
 
-NaN
+private void sendMessage(){
         String q=input.getText().toString().trim();
         if(q.isEmpty())return;
         input.setText("");
@@ -229,6 +229,67 @@ NaN
             final String finalAnswer=answer;
             runOnUiThread(()->finishAction(q,finalAnswer));
         }).start();
+    }
+
+    private void pickFile(){
+        Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        i.addCategory(Intent.CATEGORY_OPENABLE);
+        i.setType("*/*");
+        i.putExtra(Intent.EXTRA_ALLOW_MULTIPLE,false);
+        startActivityForResult(i,7001);
+    }
+
+    @Override protected void onActivityResult(int requestCode,int resultCode,Intent data){
+        super.onActivityResult(requestCode,resultCode,data);
+        if(requestCode!=7001||resultCode!=RESULT_OK||data==null||data.getData()==null)return;
+        attachedFileUri=data.getData();
+        attachedFileName=getFileName(attachedFileUri);
+        if(attachedFileName==null||attachedFileName.isEmpty())attachedFileName="selected_file";
+        attachButton.setText("✓");
+        attachButton.setTextColor(CYAN);
+        input.setHint("File attached • Message JARVIS…");
+    }
+
+    private String getFileName(Uri uri){
+        try{
+            android.database.Cursor c=getContentResolver().query(uri,null,null,null,null);
+            if(c!=null){
+                int n=c.getColumnIndex(OpenableColumns.DISPLAY_NAME);
+                if(c.moveToFirst()&&n>=0){String s=c.getString(n);c.close();return s;}
+                c.close();
+            }
+        }catch(Exception ignored){}
+        return uri!=null&&uri.getLastPathSegment()!=null?uri.getLastPathSegment():"";
+    }
+
+    private String readAttachedFile(){
+        if(attachedFileUri==null)return "";
+        InputStream in=null;
+        try{
+            in=getContentResolver().openInputStream(attachedFileUri);
+            if(in==null)return "";
+            ByteArrayOutputStream out=new ByteArrayOutputStream();
+            byte[] buf=new byte[8192];
+            int total=0,n;
+            while((n=in.read(buf))!=-1&&total<1024*1024){
+                int take=Math.min(n,1024*1024-total);
+                out.write(buf,0,take);
+                total+=take;
+                if(total>=1024*1024)break;
+            }
+            return new String(out.toByteArray(),java.nio.charset.StandardCharsets.UTF_8);
+        }catch(Exception e){return "";}
+        finally{try{if(in!=null)in.close();}catch(Exception ignored){}}
+    }
+
+    private void clearAttachment(){
+        attachedFileUri=null;
+        attachedFileName="";
+        if(attachButton!=null){
+            attachButton.setText("+");
+            attachButton.setTextColor(Color.WHITE);
+        }
+        if(input!=null)input.setHint("Message JARVIS…");
     }
 
     private void addBubble(String who,String text,boolean user){
