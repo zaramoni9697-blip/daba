@@ -9,6 +9,10 @@ import android.os.*;
 import android.speech.*;
 import android.view.View;
 import android.widget.*;
+import android.graphics.Color;
+import android.graphics.drawable.GradientDrawable;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -28,6 +32,10 @@ public class MainActivity extends AppCompatActivity {
     private SpeechRecognizer recognizer;
     private boolean activityVisible=false;
     private boolean cloudVoiceInProgress=false;
+    private FrameLayout mainRoot;
+    private LinearLayout historyList;
+    private View drawerOverlay;
+    private View historyDrawer;
 
     @Override protected void onCreate(Bundle b){
         super.onCreate(b);
@@ -35,6 +43,7 @@ public class MainActivity extends AppCompatActivity {
         status=findViewById(R.id.status);
         transcript=findViewById(R.id.transcript);
         subtitle=findViewById(R.id.subtitle);
+        mainRoot=findViewById(R.id.mainRoot);
         engine=new JarvisEngine(this);
         tts=new JarvisTts(this);
         executor=new JarvisActionExecutor(this);
@@ -45,7 +54,8 @@ public class MainActivity extends AppCompatActivity {
 
         findViewById(R.id.brain).setOnClickListener(v->toggleWake());
         findViewById(R.id.settings).setOnClickListener(v->settings());
-        findViewById(R.id.history).setOnClickListener(v->showHistory());
+        findViewById(R.id.history).setOnClickListener(v->openHistoryDrawer());
+        buildHistoryDrawer();
 
         continuousVoice=true;
         if(!mic()){
@@ -305,6 +315,7 @@ public class MainActivity extends AppCompatActivity {
             status.setText(result);
             subtitle.setText(result);
             if(!"false".equals(SecureStore.get(this,"voice_replies")))tts.speak(result);
+            JarvisHistory.add(this, transcript.getText().toString(), result);
             return;
         }
         if(a.type==JarvisAction.Type.ASK_AI){
@@ -317,6 +328,7 @@ public class MainActivity extends AppCompatActivity {
                     status.setText("Ready");
                     subtitle.setText(finalAnswer);
                     if(!"false".equals(SecureStore.get(this,"voice_replies")))tts.speak(finalAnswer);
+                    JarvisHistory.add(this, transcript.getText().toString(), finalAnswer);
                     restartListening(900);
                 });
             }).start();
@@ -341,6 +353,7 @@ public class MainActivity extends AppCompatActivity {
         status.setText(result);
         subtitle.setText(result);
         if(!"false".equals(SecureStore.get(this,"voice_replies")))tts.speak(result);
+        JarvisHistory.add(this, transcript.getText().toString(), result);
         restartListening(700);
     }
 
@@ -355,11 +368,138 @@ public class MainActivity extends AppCompatActivity {
         return s.replace("হেই জারভিস","").replace("হে জারভিস","").replace("hey jarvis","").trim();
     }
 
-    private void showHistory(){
-        String last=transcript.getText().toString();
-        new AlertDialog.Builder(this).setTitle("JARVIS History")
-                .setMessage(last==null||last.isEmpty()?"No recent command yet.":last)
-                .setPositiveButton("OK",null).show();
+    private int dp(float v){return (int)(v*getResources().getDisplayMetrics().density+0.5f);}
+    private GradientDrawable drawerBg(int color,float radius){
+        GradientDrawable g=new GradientDrawable();
+        g.setColor(color);
+        g.setCornerRadius(dp(radius));
+        return g;
+    }
+
+    private TextView drawerText(String text,float size,int color){
+        TextView t=new TextView(this);
+        t.setText(text); t.setTextSize(size); t.setTextColor(color);
+        t.setGravity(Gravity.CENTER_VERTICAL);
+        return t;
+    }
+
+    private void buildHistoryDrawer(){
+        if(mainRoot==null)return;
+        FrameLayout overlay=new FrameLayout(this);
+        overlay.setBackgroundColor(Color.argb(150,0,0,0));
+        overlay.setVisibility(View.GONE);
+        overlay.setClickable(true);
+        mainRoot.addView(overlay,new FrameLayout.LayoutParams(-1,-1));
+        drawerOverlay=overlay;
+        overlay.setOnClickListener(v->closeHistoryDrawer());
+
+        LinearLayout drawer=new LinearLayout(this);
+        drawer.setOrientation(LinearLayout.VERTICAL);
+        drawer.setPadding(dp(18),dp(18),dp(12),dp(16));
+        drawer.setBackgroundColor(Color.rgb(11,10,15));
+        drawer.setElevation(dp(18));
+
+        LinearLayout header=new LinearLayout(this);
+        header.setGravity(Gravity.CENTER_VERTICAL);
+        TextView logo=drawerText("JARVIS",24,Color.WHITE);logo.setTypeface(null,1);
+        header.addView(logo,new LinearLayout.LayoutParams(0,dp(58),1));
+        TextView close=drawerText("×",32,Color.WHITE);close.setGravity(Gravity.CENTER);
+        header.addView(close,new LinearLayout.LayoutParams(dp(48),dp(58)));
+        drawer.addView(header);
+        close.setOnClickListener(v->closeHistoryDrawer());
+
+        Button newChat=new Button(this);
+        newChat.setText("＋  New chat");
+        newChat.setTextSize(14); newChat.setAllCaps(false); newChat.setTextColor(Color.WHITE);
+        newChat.setGravity(Gravity.CENTER_VERTICAL);
+        newChat.setBackground(drawerBg(Color.rgb(28,27,38),18));
+        drawer.addView(newChat,new LinearLayout.LayoutParams(-1,dp(50)));
+        newChat.setOnClickListener(v->{transcript.setText("");transcript.setVisibility(View.GONE);subtitle.setText("বলুন — আমি শুনছি • বাংলা / English");closeHistoryDrawer();});
+
+        Button textChat=new Button(this);
+        textChat.setText("▣  Text Chat");
+        textChat.setTextSize(14); textChat.setAllCaps(false); textChat.setTextColor(Color.BLACK);
+        textChat.setGravity(Gravity.CENTER_VERTICAL);
+        textChat.setBackground(drawerBg(Color.rgb(0,225,255),18));
+        LinearLayout.LayoutParams tcp=new LinearLayout.LayoutParams(-1,dp(50));
+        tcp.setMargins(0,dp(9),0,dp(10));
+        drawer.addView(textChat,tcp);
+        textChat.setOnClickListener(v->{closeHistoryDrawer();startActivity(new Intent(this,TextChatActivity.class));});
+
+        TextView section=drawerText("RECENTS",12,Color.rgb(145,140,158));section.setTypeface(null,1);
+        section.setPadding(0,dp(8),0,dp(6));
+        drawer.addView(section);
+
+        ScrollView scroll=new ScrollView(this);
+        historyList=new LinearLayout(this);historyList.setOrientation(LinearLayout.VERTICAL);
+        scroll.addView(historyList);
+        drawer.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
+
+        TextView clear=drawerText("⌫  Clear history",13,Color.rgb(190,185,200));
+        clear.setGravity(Gravity.CENTER_VERTICAL);
+        clear.setPadding(dp(10),dp(12),dp(10),dp(12));
+        drawer.addView(clear,new LinearLayout.LayoutParams(-1,dp(48)));
+        clear.setOnClickListener(v->new AlertDialog.Builder(this).setTitle("Clear history?")
+                .setMessage("সব JARVIS chat history মুছে যাবে।")
+                .setNegativeButton("Cancel",null)
+                .setPositiveButton("Clear",(d,w)->{JarvisHistory.clear(this);refreshHistoryDrawer();}).show());
+
+        int width=Math.min(dp(330),(int)(getResources().getDisplayMetrics().widthPixels*0.86f));
+        FrameLayout.LayoutParams drawerParams=new FrameLayout.LayoutParams(width,-1,Gravity.START);
+        mainRoot.addView(drawer,drawerParams);
+        historyDrawer=drawer;
+        drawer.setTranslationX(-width);
+        drawer.setVisibility(View.GONE);
+    }
+
+    private void refreshHistoryDrawer(){
+        if(historyList==null)return;
+        historyList.removeAllViews();
+        JSONArray arr=JarvisHistory.read(this);
+        if(arr.length()==0){
+            TextView empty=drawerText("No conversations yet.\nStart talking to JARVIS.",13,Color.rgb(130,125,142));
+            empty.setPadding(dp(8),dp(18),dp(8),dp(18));
+            historyList.addView(empty);
+            return;
+        }
+        for(int i=0;i<arr.length();i++){
+            try{
+                JSONObject o=arr.getJSONObject(i);
+                String user=o.optString("user","JARVIS chat");
+                String answer=o.optString("assistant","");
+                String time=o.optString("time","");
+                LinearLayout item=new LinearLayout(this);
+                item.setOrientation(LinearLayout.VERTICAL);
+                item.setPadding(dp(10),dp(9),dp(8),dp(9));
+                item.setBackground(drawerBg(Color.rgb(15,14,20),14));
+                TextView title=drawerText(user,14,Color.rgb(235,232,240));
+                title.setMaxLines(2);title.setEllipsize(android.text.TextUtils.TruncateAt.END);
+                item.addView(title);
+                TextView meta=drawerText(time,10,Color.rgb(120,115,132));
+                item.addView(meta);
+                LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,dp(66));
+                p.setMargins(0,dp(3),0,dp(3));historyList.addView(item,p);
+                final String fu=user, fa=answer;
+                item.setOnClickListener(v->new AlertDialog.Builder(this).setTitle(fu).setMessage(fa.isEmpty()?"No response saved.":fa).setPositiveButton("OK",null).show());
+            }catch(Exception ignored){}
+        }
+    }
+
+    private void openHistoryDrawer(){
+        if(historyDrawer==null)return;
+        refreshHistoryDrawer();
+        historyDrawer.setVisibility(View.VISIBLE);
+        drawerOverlay.setVisibility(View.VISIBLE);
+        historyDrawer.animate().translationX(0).setDuration(220).start();
+    }
+
+    private void closeHistoryDrawer(){
+        if(historyDrawer==null)return;
+        int width=historyDrawer.getLayoutParams().width;
+        historyDrawer.animate().translationX(-width).setDuration(180).withEndAction(()->{
+            historyDrawer.setVisibility(View.GONE);
+            if(drawerOverlay!=null)drawerOverlay.setVisibility(View.GONE);
+        }).start();
     }
 
     private void settings(){startActivity(new Intent(this,SettingsActivity.class));}
