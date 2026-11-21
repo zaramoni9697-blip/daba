@@ -171,7 +171,7 @@ public class MainActivity extends AppCompatActivity {
         if(!activityVisible || !continuousVoice || recognitionInProgress || !mic()) return;
         recognitionInProgress=true;
         String groqKey=SecureStore.get(this,"groq");
-        boolean farVoice=!"false".equals(SecureStore.get(this,"far_voice")) && groqKey!=null && !groqKey.trim().isEmpty();
+        boolean farVoice="true".equals(SecureStore.get(this,"far_voice")) && groqKey!=null && !groqKey.trim().isEmpty();
         if(farVoice && !cloudFailedFallbackOnce){
             recognitionInProgress=false;
             listenWithCloudStt();
