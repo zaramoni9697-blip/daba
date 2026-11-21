@@ -172,7 +172,19 @@ public class JarvisWakeService extends Service {
     }
 
     @Override public int onStartCommand(Intent i, int flags, int startId) {
+        if(!running) startRecognizer();
         return START_STICKY;
+    }
+
+    @Override public void onTaskRemoved(Intent rootIntent) {
+        if(!"false".equals(SecureStore.get(this,"wake_enabled"))){
+            try {
+                Intent restart=new Intent(this,JarvisWakeService.class);
+                if(Build.VERSION.SDK_INT>=26) startForegroundService(restart);
+                else startService(restart);
+            } catch(Exception ignored) {}
+        }
+        super.onTaskRemoved(rootIntent);
     }
 
     @Override public void onDestroy() {
