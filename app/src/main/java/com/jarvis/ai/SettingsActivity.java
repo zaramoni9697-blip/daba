@@ -17,7 +17,7 @@ public class SettingsActivity extends AppCompatActivity {
     private EditText gemini, openai, groq, openrouter, deepseek, xai, custom, endpoint;
     private EditText openrouterModel, deepseekModel, xaiModel;
     private Switch autoFailover, voiceReplies, saveMemory, farVoice;
-    private TextView wakeState, phoneState, modeTitle, modeHint;
+    private TextView wakeState, phoneState, modeTitle, modeHint, micDiagnostic;\n    private JarvisMicDiagnostic micTest;
     private final String[] providers={"Gemini","OpenAI-compatible","Groq","OpenRouter","DeepSeek","Grok","Custom"};
     private final int BG=Color.rgb(10,9,14), CARD=Color.rgb(20,19,28), INPUT=Color.rgb(12,11,17), CYAN=Color.rgb(0,225,255), PURPLE=Color.rgb(150,135,255), MUTED=Color.rgb(155,149,175);
 
@@ -123,7 +123,36 @@ public class SettingsActivity extends AppCompatActivity {
         wakeState=tv(JarvisWakeService.isRunning()?"● WAKE LISTENER ACTIVE":"○ WAKE LISTENER OFF",12,CYAN);wakeState.setPadding(0,dp(6),0,dp(5));c.addView(wakeState);
         Button wake=action("◉  START / STOP HEY JARVIS",Color.rgb(28,45,52));add(c,wake,52);wake.setOnClickListener(v->{if(JarvisWakeService.isRunning()){stopService(new Intent(this,JarvisWakeService.class));SecureStore.put(this,"wake_enabled","false");}else{SecureStore.put(this,"wake_enabled","true");startForegroundService(new Intent(this,JarvisWakeService.class));}updateWakeState();});
         TextView hint=tv("If Android Speech Recognition is unavailable, JARVIS can use Groq Whisper cloud voice input. Save your Groq API key in AI / API mode. Wake Listener keeps a microphone foreground service running so “Hey JARVIS” can work outside the app.",11,MUTED);hint.setPadding(0,dp(5),0,dp(4));c.addView(hint);
-        voicePanel.addView(c);content.addView(voicePanel);
+        voicePanel.addView(c);content.addView(voicePanel);\n        buildMicDiagnostic();
+    }
+
+    private void buildMicDiagnostic(){
+        LinearLayout d=card();
+        d.addView(label("MICROPHONE DIAGNOSTIC"));
+        d.addView(tv("এখানে JARVIS-এর microphone capture, noise floor এবং Android audio effects সরাসরি পরীক্ষা করুন।",12,MUTED));
+        micDiagnostic=tv("● READY\nPermission এবং microphone test শুরু করুন.",12,Color.WHITE);
+        micDiagnostic.setGravity(Gravity.TOP);
+        micDiagnostic.setPadding(0,dp(10),0,dp(10));
+        d.addView(micDiagnostic,new LinearLayout.LayoutParams(-1,dp(150)));
+        LinearLayout row=new LinearLayout(this);
+        Button test=action("🎙  LIVE MIC TEST",Color.rgb(22,48,55));
+        Button stop=action("■  STOP",Color.rgb(48,30,40));
+        LinearLayout.LayoutParams bp=new LinearLayout.LayoutParams(0,dp(50),1);bp.setMargins(dp(3),0,dp(3),0);
+        row.addView(test,bp);row.addView(stop,bp);d.addView(row);
+        test.setOnClickListener(v->{
+            if(micTest==null)micTest=new JarvisMicDiagnostic(this);
+            String s=micTest.start((text,rms,peak,voice)->{
+                if(micDiagnostic!=null)micDiagnostic.setText(text);
+            });
+            micDiagnostic.setText(s);
+        });
+        stop.setOnClickListener(v->{
+            if(micTest!=null)micTest.stop();
+            if(micDiagnostic!=null)micDiagnostic.setText("● TEST STOPPED");
+        });
+        TextView tip=tv("কথা বলার সময় RMS/Peak বাড়বে এবং VOICE DETECTED দেখাবে। Noise-এর মধ্যেও যদি RMS না বাড়ে, সমস্যা recognition নয়—microphone capture/source-এ।",11,MUTED);
+        tip.setPadding(0,dp(7),0,0);d.addView(tip);
+        content.addView(d);
     }
 
     private void buildPhoneControl(){
@@ -150,7 +179,7 @@ public class SettingsActivity extends AppCompatActivity {
         modeTitle.setText(mode+" MODE");
         if("GENERAL".equals(mode))modeHint.setText("Language, memory and JARVIS behaviour.");
         else if("AI / API".equals(mode))modeHint.setText("Choose your AI provider and securely enter its API key.");
-        else if("VOICE".equals(mode))modeHint.setText("Voice replies, wake listener and “Hey JARVIS”.");
+        else if("VOICE".equals(mode))modeHint.setText("Voice replies, wake listener, “Hey JARVIS” and microphone diagnostics.");
         else modeHint.setText("Accessibility-based control of your Android phone.");
         if("AI / API".equals(mode))refreshApiFields((LinearLayout)apiPanel.getChildAt(1));
     }
