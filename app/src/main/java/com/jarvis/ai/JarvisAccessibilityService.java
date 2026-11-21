@@ -50,6 +50,50 @@ public class JarvisAccessibilityService extends AccessibilityService {
         Bundle args=new Bundle();args.putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE,text);
         return focused.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT,args);
     }
+
+    public static boolean clickTextContains(String text){
+        if(instance==null||text==null||text.trim().isEmpty())return false;
+        AccessibilityNodeInfo root=instance.getRootInActiveWindow();
+        if(root==null)return false;
+        java.util.List<AccessibilityNodeInfo> all=new java.util.ArrayList<>();
+        collectNodes(root,all);
+        String q=text.toLowerCase(java.util.Locale.ROOT).trim();
+        for(AccessibilityNodeInfo n:all){
+            CharSequence t=n.getText();
+            CharSequence d=n.getContentDescription();
+            String ts=t==null?"":t.toString().toLowerCase(java.util.Locale.ROOT);
+            String ds=d==null?"":d.toString().toLowerCase(java.util.Locale.ROOT);
+            if(ts.contains(q)||ds.contains(q)){
+                AccessibilityNodeInfo cur=n;
+                while(cur!=null){
+                    if(cur.isClickable()&&cur.performAction(AccessibilityNodeInfo.ACTION_CLICK))return true;
+                    cur=cur.getParent();
+                }
+            }
+        }
+        return false;
+    }
+    private static void collectNodes(AccessibilityNodeInfo node,java.util.List<AccessibilityNodeInfo> out){
+        if(node==null)return;
+        out.add(node);
+        for(int i=0;i<node.getChildCount();i++)collectNodes(node.getChild(i),out);
+    }
+    public static boolean focusInput(){
+        if(instance==null)return false;
+        AccessibilityNodeInfo root=instance.getRootInActiveWindow();
+        if(root==null)return false;
+        AccessibilityNodeInfo focused=root.findFocus(AccessibilityNodeInfo.FOCUS_INPUT);
+        if(focused!=null&&focused.isEditable())return true;
+        java.util.List<AccessibilityNodeInfo> all=new java.util.ArrayList<>();
+        collectNodes(root,all);
+        for(AccessibilityNodeInfo n:all){
+            if(n.isEditable()&&n.isFocusable()){
+                n.performAction(AccessibilityNodeInfo.ACTION_FOCUS);
+                return true;
+            }
+        }
+        return false;
+    }
     public static boolean takeScreenshotToGallery(final android.content.Context context){
         if(instance==null||Build.VERSION.SDK_INT<30)return false;
         try{
