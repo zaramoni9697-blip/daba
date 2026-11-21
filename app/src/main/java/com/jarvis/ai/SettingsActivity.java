@@ -16,7 +16,7 @@ public class SettingsActivity extends AppCompatActivity {
     private Spinner provider, speechLanguage;
     private EditText gemini, openai, groq, openrouter, deepseek, xai, custom, endpoint;
     private EditText openrouterModel, deepseekModel, xaiModel;
-    private Switch autoFailover, voiceReplies, saveMemory;
+    private Switch autoFailover, voiceReplies, saveMemory, farVoice;
     private TextView wakeState, phoneState, modeTitle, modeHint;
     private final String[] providers={"Gemini","OpenAI-compatible","Groq","OpenRouter","DeepSeek","Grok","Custom"};
     private final int BG=Color.rgb(10,9,14), CARD=Color.rgb(20,19,28), INPUT=Color.rgb(12,11,17), CYAN=Color.rgb(0,225,255), PURPLE=Color.rgb(150,135,255), MUTED=Color.rgb(155,149,175);
@@ -113,7 +113,13 @@ public class SettingsActivity extends AppCompatActivity {
     private void buildVoice(){
         voicePanel=new LinearLayout(this);voicePanel.setOrientation(LinearLayout.VERTICAL);
         LinearLayout c=card();c.addView(label("VOICE & WAKE MODE"));
-        voiceReplies=new Switch(this);voiceReplies.setText("JARVIS voice replies / TTS");voiceReplies.setTextColor(Color.WHITE);voiceReplies.setTextSize(14);voiceReplies.setChecked(!"false".equals(SecureStore.get(this,"voice_replies")));c.addView(voiceReplies);
+        farVoice=new Switch(this);
+        farVoice.setText("Far-field voice mode • দূর থেকেও শোনার চেষ্টা");
+        farVoice.setTextColor(Color.WHITE);farVoice.setTextSize(14);
+        farVoice.setChecked(!"false".equals(SecureStore.get(this,"far_voice")));
+        c.addView(farVoice);
+        c.addView(tv("Uses enhanced microphone gain + noise suppression and Groq Whisper when a Groq key is saved. This can use more data and battery.",11,MUTED));
+                voiceReplies=new Switch(this);voiceReplies.setText("JARVIS voice replies / TTS");voiceReplies.setTextColor(Color.WHITE);voiceReplies.setTextSize(14);voiceReplies.setChecked(!"false".equals(SecureStore.get(this,"voice_replies")));c.addView(voiceReplies);
         wakeState=tv(JarvisWakeService.isRunning()?"● WAKE LISTENER ACTIVE":"○ WAKE LISTENER OFF",12,CYAN);wakeState.setPadding(0,dp(6),0,dp(5));c.addView(wakeState);
         Button wake=action("◉  START / STOP HEY JARVIS",Color.rgb(28,45,52));add(c,wake,52);wake.setOnClickListener(v->{if(JarvisWakeService.isRunning()){stopService(new Intent(this,JarvisWakeService.class));SecureStore.put(this,"wake_enabled","false");}else{SecureStore.put(this,"wake_enabled","true");startForegroundService(new Intent(this,JarvisWakeService.class));}updateWakeState();});
         TextView hint=tv("If Android Speech Recognition is unavailable, JARVIS can use Groq Whisper cloud voice input. Save your Groq API key in AI / API mode. Wake Listener keeps a microphone foreground service running so “Hey JARVIS” can work outside the app.",11,MUTED);hint.setPadding(0,dp(5),0,dp(4));c.addView(hint);
@@ -153,7 +159,7 @@ public class SettingsActivity extends AppCompatActivity {
         putIf(gemini,"gemini");putIf(openai,"openai");putIf(groq,"groq");putIf(openrouter,"openrouter");putIf(deepseek,"deepseek");putIf(xai,"xai");putIf(custom,"custom");putText(openrouterModel,"openrouter_model");putText(deepseekModel,"deepseek_model");putText(xaiModel,"xai_model");putText(endpoint,"custom_endpoint");
         SecureStore.put(this,"primary",provider.getSelectedItem().toString());
         SecureStore.put(this,"speech_language",speechLanguage.getSelectedItemPosition()==1?"bn-BD":speechLanguage.getSelectedItemPosition()==2?"en-US":"AUTO");
-        SecureStore.put(this,"auto_failover",String.valueOf(autoFailover.isChecked()));SecureStore.put(this,"voice_replies",String.valueOf(voiceReplies.isChecked()));SecureStore.put(this,"memory_enabled",String.valueOf(saveMemory.isChecked()));
+        SecureStore.put(this,"auto_failover",String.valueOf(autoFailover.isChecked()));SecureStore.put(this,"voice_replies",String.valueOf(voiceReplies.isChecked()));SecureStore.put(this,"memory_enabled",String.valueOf(saveMemory.isChecked()));SecureStore.put(this,"far_voice",String.valueOf(farVoice.isChecked()));
         Toast.makeText(this,"✓ JARVIS configuration saved.",Toast.LENGTH_SHORT).show();
     }
     private void putIf(EditText e,String k){if(e!=null&&e.getText().length()>0)SecureStore.put(this,k,e.getText().toString());}
