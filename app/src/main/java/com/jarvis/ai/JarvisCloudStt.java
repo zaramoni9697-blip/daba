@@ -21,23 +21,23 @@ public final class JarvisCloudStt {
         if(min<=0)return null;
         AudioRecord record=null; File wav=null;
         try{
-            int source=MediaRecorder.AudioSource.VOICE_RECOGNITION;
-            try{ record=new AudioRecord(source,rate,channels,format,Math.max(min*2,16384)); }
-            catch(Exception e){ record=new AudioRecord(MediaRecorder.AudioSource.MIC,rate,channels,format,Math.max(min*2,16384)); }
+            int source=MediaRecorder.AudioSource.MIC;
+            try{ record=new AudioRecord(source,rate,channels,format,Math.max(min*2,32768)); }
+            catch(Exception e){ record=new AudioRecord(MediaRecorder.AudioSource.VOICE_RECOGNITION,rate,channels,format,Math.max(min*2,32768)); }
             if(record.getState()!=AudioRecord.STATE_INITIALIZED)return null;
             AutomaticGainControl agc=null;
             NoiseSuppressor ns=null;
             AcousticEchoCanceler aec=null;
             try{ if(AutomaticGainControl.isAvailable()) agc=AutomaticGainControl.create(record.getAudioSessionId()); }catch(Exception ignored){}
             try{ if(NoiseSuppressor.isAvailable()){ ns=NoiseSuppressor.create(record.getAudioSessionId()); if(ns!=null)ns.setEnabled(true); } }catch(Exception ignored){}
-            try{ if(AcousticEchoCanceler.isAvailable()){ aec=AcousticEchoCanceler.create(record.getAudioSessionId()); if(aec!=null)aec.setEnabled(true); } }catch(Exception ignored){}
+            // Do not force AEC: on some Infinix/Android 11 audio stacks it can suppress the speaker voice.
             try{ if(agc!=null)agc.setEnabled(true); }catch(Exception ignored){}
             wav=File.createTempFile("jarvis_voice_",".wav",context.getCacheDir());
             try(FileOutputStream out=new FileOutputStream(wav)){
                 writeHeader(out,0,rate,1,16);
                 record.startRecording();
                 long start=System.currentTimeMillis();
-                long maxEnd=start+30000;
+                long maxEnd=start+6000;
                 long speechStarted=0;
                 long lastVoice=start;
                 double noiseFloor=180.0;
@@ -88,7 +88,10 @@ public final class JarvisCloudStt {
                         if(speechStarted>0 && now-lastVoice>3000 && now-speechStarted>700)break;
                     }
                 }
-                if(speechStarted==0 || total<rate) return null;
+                if(total<rate) return null;
+                // Even if the local VAD misses speech, keep the recording and
+                // let Whisper decide. The VAD is only used to stop early, never
+                // to discard a potentially valid sentence.
                 record.stop();
                 try{if(agc!=null)agc.release();}catch(Exception ignored){}
                 try{if(ns!=null)ns.release();}catch(Exception ignored){}
