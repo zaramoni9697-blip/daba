@@ -85,6 +85,13 @@ public class TextChatActivity extends AppCompatActivity {
         }
     }
 
+    private boolean isWebsiteRequest(String q){
+        String s=q.toLowerCase(java.util.Locale.ROOT);
+        return s.contains("website")||s.contains("web site")||s.contains("ওয়েবসাইট")||s.contains("ওয়েবসাইট")
+                ||s.contains("ওয়েব সাইট")||s.contains("ওয়েব সাইট")||s.contains("site বানাও")
+                ||s.contains("সাইট বানাও")||s.contains("সাইট তৈরি")||s.contains("ওয়েব পেজ")||s.contains("ওয়েব পেজ");
+    }
+
     private boolean isMessageAction(JarvisAction.Type t){
         return t==JarvisAction.Type.WHATSAPP_SEND||t==JarvisAction.Type.MESSENGER_SEND||t==JarvisAction.Type.SMS;
     }
@@ -102,6 +109,24 @@ public class TextChatActivity extends AppCompatActivity {
         input.setText("");
         addBubble("YOU",q,true);
         addBubble("JARVIS","Thinking…",false);
+
+        if(isWebsiteRequest(q)){
+            JarvisWebsiteBuilder builder=new JarvisWebsiteBuilder(this);
+            new Thread(()->builder.buildAndPublish(q,message->runOnUiThread(()->{
+                if(messages.getChildCount()>0)messages.removeViewAt(messages.getChildCount()-1);
+                if(message.startsWith("WEBSITE_READY|")){
+                    String out=message.substring("WEBSITE_READY|".length());
+                    addBubble("JARVIS","✓ WEBSITE CREATED\n\n"+out,false);
+                    JarvisHistory.add(this,q,out);
+                    if(!"false".equals(SecureStore.get(this,"voice_replies")))tts.speak("Website তৈরি হয়েছে। লিংক text chat-এ দেওয়া হয়েছে।");
+                }else{
+                    String out=message.contains("|")?message.substring(message.indexOf("|")+1):message;
+                    addBubble("JARVIS",out,false);
+                    JarvisHistory.add(this,q,out);
+                }
+            }))).start();
+            return;
+        }
 
         JarvisAction action=router.route(q);
         if(action.type!=JarvisAction.Type.ASK_AI && !isMessageAction(action.type)){
