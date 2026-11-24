@@ -8,6 +8,7 @@ import android.provider.Settings;
 import android.os.*;
 import android.speech.*;
 import android.view.View;
+import android.view.Gravity;
 import android.widget.*;
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
