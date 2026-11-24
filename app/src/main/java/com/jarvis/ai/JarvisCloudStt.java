@@ -4,6 +4,8 @@ import android.content.Context;
 import android.media.AudioFormat;
 import android.media.AudioRecord;
 import android.media.MediaRecorder;
+import android.media.audiofx.AutomaticGainControl;
+import android.media.audiofx.NoiseSuppressor;
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -12,49 +14,77 @@ import org.json.JSONObject;
 public final class JarvisCloudStt {
     private JarvisCloudStt(){}
 
-    public static String transcribe(Context context, String apiKey){
-        int rate=16000, channels=AudioFormat.CHANNEL_IN_MONO, format=AudioFormat.ENCODING_PCM_16BIT;
+    public static String transcribe(Context context,String apiKey){
+        final int rate=16000, channels=AudioFormat.CHANNEL_IN_MONO, format=AudioFormat.ENCODING_PCM_16BIT;
         int min=AudioRecord.getMinBufferSize(rate,channels,format);
         if(min<=0)return null;
-        AudioRecord record=null; File wav=null;
+        AudioRecord record=null; AutomaticGainControl agc=null; NoiseSuppressor ns=null; File wav=null;
         try{
-            record=new AudioRecord(MediaRecorder.AudioSource.MIC,rate,channels,format,Math.max(min*2,8192));
+            record=new AudioRecord(MediaRecorder.AudioSource.VOICE_RECOGNITION,rate,channels,format,Math.max(min*4,16384));
+            if(record.getState()!=AudioRecord.STATE_INITIALIZED){
+                try{record.release();}catch(Exception ignored){}
+                record=new AudioRecord(MediaRecorder.AudioSource.MIC,rate,channels,format,Math.max(min*4,16384));
+            }
             if(record.getState()!=AudioRecord.STATE_INITIALIZED)return null;
-            wav=File.createTempFile("jarvis_voice_",".wav",context.getCacheDir());
+
+            int session=record.getAudioSessionId();
+            try{if(AutomaticGainControl.isAvailable())agc=AutomaticGainControl.create(session);}catch(Exception ignored){}
+            try{if(NoiseSuppressor.isAvailable())ns=NoiseSuppressor.create(session);}catch(Exception ignored){}
+            try{if(agc!=null)agc.setEnabled(true);}catch(Exception ignored){}
+            try{if(ns!=null)ns.setEnabled(true);}catch(Exception ignored){}
+
+            wav=File.createTempFile("jarvis_voice_"," .wav".replace(" ",""),context.getCacheDir());
             try(FileOutputStream out=new FileOutputStream(wav)){
                 writeHeader(out,0,rate,1,16);
                 record.startRecording();
-                long start=System.currentTimeMillis();
-                long maxEnd=start+9000;
-                long speechStarted=0;
-                long lastVoice=start;
+                long start=System.currentTimeMillis(), maxEnd=start+9000, speechStarted=0, lastVoice=start;
+                double noiseFloor=120.0;
                 byte[] b=new byte[4096]; int total=0;
+
                 while(System.currentTimeMillis()<maxEnd){
                     int n=record.read(b,0,b.length);
-                    if(n>0){
-                        out.write(b,0,n);total+=n;
-                        long sum=0;
-                        for(int p=0;p+1<n;p+=2){
-                            int lo=b[p]&0xff, hi=b[p+1];
-                            short sample=(short)((hi<<8)|lo);
-                            sum+=Math.abs((int)sample);
-                        }
-                        double avg=sum/Math.max(1,n/2);
-                        long now=System.currentTimeMillis();
-                        if(avg>900){
-                            if(speechStarted==0)speechStarted=now;
-                            lastVoice=now;
-                        }
-                        if(speechStarted>0 && now-lastVoice>1200 && now-speechStarted>900)break;
+                    if(n<=0)continue;
+
+                    double sum=0;
+                    for(int p=0;p+1<n;p+=2){
+                        int sample=(short)(((b[p+1]&0xff)<<8)|(b[p]&0xff));
+                        sum+=Math.abs(sample);
                     }
+                    double avg=sum/Math.max(1,n/2);
+                    if(speechStarted==0){
+                        noiseFloor=noiseFloor*0.88+avg*0.12;
+                    }
+                    double target=Math.max(700.0,noiseFloor*3.0);
+                    double gain=avg<1?6.0:Math.min(10.0,Math.max(1.8,2200.0/Math.max(avg,180.0)));
+                    for(int p=0;p+1<n;p+=2){
+                        int sample=(short)(((b[p+1]&0xff)<<8)|(b[p]&0xff));
+                        double centered=sample;
+                        double boosted=centered*gain;
+                        if(Math.abs(boosted)<noiseFloor*1.15 && speechStarted==0)boosted=0;
+                        boosted=Math.max(-32767,Math.min(32767,boosted));
+                        short s=(short)boosted;
+                        b[p]=(byte)(s&0xff); b[p+1]=(byte)((s>>8)&0xff);
+                    }
+                    out.write(b,0,n); total+=n;
+
+                    long now=System.currentTimeMillis();
+                    if(avg>target){
+                        if(speechStarted==0)speechStarted=now;
+                        lastVoice=now;
+                    }
+                    if(speechStarted>0 && now-lastVoice>1400 && now-speechStarted>900)break;
                 }
-                if(speechStarted==0 || total<rate*2) return null;
+                if(speechStarted==0 || total<rate*2)return null;
                 record.stop();
-                try(RandomAccessFile raf=new RandomAccessFile(wav,"rw")){raf.seek(0);writeHeader(raf,total,rate,1,16);}
+                try(RandomAccessFile raf=new RandomAccessFile(wav,"rw")){
+                    raf.seek(0);writeHeader(raf,total,rate,1,16);
+                }
             }
             return upload(wav,apiKey);
         }catch(Exception e){return null;}
         finally{
+            if(agc!=null)try{agc.release();}catch(Exception ignored){}
+            if(ns!=null)try{ns.release();}catch(Exception ignored){}
             if(record!=null)try{record.release();}catch(Exception ignored){}
             if(wav!=null)try{wav.delete();}catch(Exception ignored){}
         }
@@ -95,7 +125,9 @@ public final class JarvisCloudStt {
         return new JSONObject(body).optString("text","").trim();
     }
     private static void part(DataOutputStream o,String boundary,String name,String value)throws IOException{
-        o.writeBytes("--"+boundary+"\r\n");o.writeBytes("Content-Disposition: form-data; name=\""+name+"\"\r\n\r\n");o.writeBytes(value+"\r\n");
+        o.writeBytes("--"+boundary+"\r\n");
+        o.writeBytes("Content-Disposition: form-data; name=\""+name+"\"\r\n\r\n");
+        o.writeBytes(value+"\r\n");
     }
     private static String read(InputStream in)throws IOException{
         if(in==null)return "";StringBuilder s=new StringBuilder();byte[] b=new byte[4096];int n;while((n=in.read(b))!=-1)s.append(new String(b,0,n,"UTF-8"));return s.toString();
