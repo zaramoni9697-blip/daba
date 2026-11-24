@@ -172,7 +172,7 @@ public class MainActivity extends AppCompatActivity {
                     if(e==SpeechRecognizer.ERROR_NO_MATCH || e==SpeechRecognizer.ERROR_SPEECH_TIMEOUT){
                         String key=SecureStore.get(MainActivity.this,"groq");
                         if(key!=null && !key.trim().isEmpty()){
-                            handler.postDelayed(MainActivity.this::listenWithCloudStt,250);
+                            handler.postDelayed(MainActivity.this::listenWithCloudStt,180);
                             return;
                         }
                     }
@@ -228,7 +228,7 @@ public class MainActivity extends AppCompatActivity {
         cloudVoiceInProgress=true;
         status.setVisibility(View.VISIBLE);
         status.setText("Listening…");
-        subtitle.setText("Cloud voice mode • বলুন — আমি শুনছি");
+        subtitle.setText("বলুন — আমি শুনছি • বাংলা / English");
         new Thread(()->{
             final String[] result=new String[1];
             result[0]=JarvisCloudStt.transcribe(this,key.trim());
