@@ -167,9 +167,18 @@ public class MainActivity extends AppCompatActivity {
             public void onError(int e){
                 recognitionInProgress=false;
                 if(activityVisible && continuousVoice){
+                    // Give very quiet speech a longer retry. If Groq is configured,
+                    // use it silently as a fallback for low-volume recognition.
+                    if(e==SpeechRecognizer.ERROR_NO_MATCH || e==SpeechRecognizer.ERROR_SPEECH_TIMEOUT){
+                        String key=SecureStore.get(MainActivity.this,"groq");
+                        if(key!=null && !key.trim().isEmpty()){
+                            handler.postDelayed(MainActivity.this::listenWithCloudStt,250);
+                            return;
+                        }
+                    }
                     status.setVisibility(View.VISIBLE);
-                    status.setText("Voice error: "+speechErrorName(e)+" ("+e+")");
-                    handler.postDelayed(MainActivity.this::listen,900);
+                    status.setText("Listening…");
+                    handler.postDelayed(MainActivity.this::listen,350);
                 }
             }
             public void onReadyForSpeech(Bundle b){status.setText("Listening…");}
@@ -177,16 +186,22 @@ public class MainActivity extends AppCompatActivity {
             public void onRmsChanged(float r){}
             public void onBufferReceived(byte[] b){}
             public void onEndOfSpeech(){}
-            public void onPartialResults(Bundle b){}
+            public void onPartialResults(Bundle b){
+                ArrayList<String> p=b.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+                if(p!=null&&!p.isEmpty()&&p.get(0)!=null&&!p.get(0).trim().isEmpty()){
+                    transcript.setText(p.get(0));
+                    transcript.setVisibility(View.VISIBLE);
+                }
+            }
             public void onEvent(int a, Bundle b){}
         });
         Intent i=new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
         i.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
-        i.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS,false);
+        i.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS,true);
         i.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS,5);
-        i.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS,1800);
-        i.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS,1500);
-        i.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS,1200);
+        i.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS,3200);
+        i.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS,2500);
+        i.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS,2200);
         String lang=SecureStore.get(this,"speech_language");
         if(lang==null||lang.isEmpty()||lang.equals("AUTO")){
             i.putExtra(RecognizerIntent.EXTRA_LANGUAGE,"bn-BD");
