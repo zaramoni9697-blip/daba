@@ -21,7 +21,7 @@ public class JarvisEngine {
         String history=memory.context(6);
         String prompt="You are JARVIS, a concise Android voice assistant. Detect whether the user is speaking Bengali or English from the current message and reply in the same language. If Bengali script is present, answer naturally in Bangla (বাংলা), not English. If English is used, answer in English. For mixed Bengali-English, preserve the user's mix naturally. Do not translate unless asked. Do not claim you performed an action unless the app actually did it.\nRecent context:\n"+history+"\nCurrent user: "+user;
         String result=callProvider(prompt);
-        if(result==null) result="দুঃখিত, AI উত্তর দিতে পারেনি। API key/provider settings পরীক্ষা করুন।";
+        if(result==null){ String detail=lastError==null?"" : lastError.trim(); result=detail.isEmpty()? "দুঃখিত, AI উত্তর দিতে পারেনি। API key/provider settings পরীক্ষা করুন." : "দুঃখিত, AI উত্তর দিতে পারেনি।\n"+detail; }
         if(!"false".equals(SecureStore.get(context,"memory_enabled"))) memory.add("assistant",result);
         return result;
     }
