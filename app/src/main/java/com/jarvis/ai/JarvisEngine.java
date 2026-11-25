@@ -91,8 +91,7 @@ public class JarvisEngine {
             .put("contents",new JSONArray().put(new JSONObject()
                 .put("parts",new JSONArray().put(new JSONObject().put("text",prompt)))))
             .put("generationConfig",new JSONObject()
-                .put("maxOutputTokens",256)
-                .put("thinkingConfig",new JSONObject().put("thinkingLevel","MINIMAL")));
+                .put("maxOutputTokens",256));
 
         write(c,body.toString());
         String response=readChecked(c);
@@ -103,8 +102,18 @@ public class JarvisEngine {
         if(content==null) throw new IOException("No content returned");
         JSONArray parts=content.optJSONArray("parts");
         if(parts==null || parts.length()==0) throw new IOException("No response text returned");
-        String text=parts.getJSONObject(0).optString("text","");
-        if(text.trim().isEmpty()) throw new IOException("Empty response");
+        StringBuilder answer=new StringBuilder();
+        for(int i=0;i<parts.length();i++){
+            JSONObject part=parts.optJSONObject(i);
+            if(part==null) continue;
+            String t=part.optString("text","");
+            if(t!=null && !t.trim().isEmpty()){
+                if(answer.length()>0) answer.append("\n");
+                answer.append(t.trim());
+            }
+        }
+        String text=answer.toString().trim();
+        if(text.isEmpty()) throw new IOException("Empty response");
         return text;
     }
 
