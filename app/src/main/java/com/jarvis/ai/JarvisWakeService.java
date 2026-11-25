@@ -22,6 +22,7 @@ public class JarvisWakeService extends Service {
     private JarvisActionExecutor executor;
     private JarvisEngine engine;
     private JarvisTts tts;
+    private JarvisFloatingOverlay overlay;
 
     public static boolean isRunning() { return active; }
 
@@ -33,6 +34,8 @@ public class JarvisWakeService extends Service {
         executor = new JarvisActionExecutor(this);
         engine = new JarvisEngine(this);
         tts = new JarvisTts(this);
+        overlay = new JarvisFloatingOverlay(this);
+        overlay.show();
         channel();
 
         Intent open = new Intent(this, MainActivity.class);
@@ -264,6 +267,10 @@ public class JarvisWakeService extends Service {
         if (recognizer != null) {
             try { recognizer.destroy(); } catch (Exception ignored) {}
             recognizer = null;
+        }
+        if (overlay != null) {
+            overlay.remove();
+            overlay = null;
         }
         if (tts != null) {
             try { tts.shutdown(); } catch (Exception ignored) {}
