@@ -21,7 +21,7 @@ public class JarvisEngine {
         String history=memory.context(6);
         String prompt="You are JARVIS, a concise Android voice assistant. Detect whether the user is speaking Bengali or English from the current message and reply in the same language. If Bengali script is present, answer naturally in Bangla (বাংলা), not English. If English is used, answer in English. For mixed Bengali-English, preserve the user's mix naturally. Do not translate unless asked. Do not claim you performed an action unless the app actually did it.\nRecent context:\n"+history+"\nCurrent user: "+user;
         String result=callProvider(prompt);
-        if(result==null) result="AI service is unavailable. Please check your API settings.";
+        if(result==null) result="দুঃখিত, AI উত্তর দিতে পারেনি। API key/provider settings পরীক্ষা করুন।";
         if(!"false".equals(SecureStore.get(context,"memory_enabled"))) memory.add("assistant",result);
         return result;
     }
@@ -79,7 +79,7 @@ public class JarvisEngine {
     }
 
     private String gemini(String key,String prompt)throws Exception{
-        URL u=new URL("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key="+key);
+        URL u=new URL("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key="+key);
         HttpURLConnection c=(HttpURLConnection)u.openConnection();
         c.setRequestMethod("POST");
         c.setDoOutput(true);
