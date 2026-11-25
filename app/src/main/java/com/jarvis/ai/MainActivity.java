@@ -158,7 +158,7 @@ public class MainActivity extends AppCompatActivity {
                 recognitionInProgress=false;
                 ArrayList<String> a=b.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
                 if(a!=null&&!a.isEmpty()){
-                    String cmd=a.get(0);
+                    String cmd=chooseBestTranscript(a);
                     transcript.setText(cmd);
                     transcript.setVisibility(View.VISIBLE);
                     execute(cmd);
@@ -379,9 +379,25 @@ public class MainActivity extends AppCompatActivity {
             handler.postDelayed(this::listen,delay);
     }
 
+    private String chooseBestTranscript(ArrayList<String> candidates){
+        if(candidates==null||candidates.isEmpty())return "";
+        String best=candidates.get(0)==null?"":candidates.get(0).trim();
+        int bestScore=-1;
+        for(String raw:candidates){
+            if(raw==null||raw.trim().isEmpty())continue;
+            String s=raw.toLowerCase(Locale.ROOT).trim();
+            int score=0;
+            String[] keys={"facebook","ফেসবুক","youtube","ইউটিউব","messenger","মেসেঞ্জার","whatsapp","হোয়াটসঅ্যাপ","হোয়াটসঅ্যাপ","telegram","টেলিগ্রাম","settings","সেটিংস","chrome","ক্রোম","camera","ক্যামেরা","gallery","গ্যালারি","open","খোলো","খুলে","চালু","করো","কর","home","হোম","back","ব্যাক","volume","ভলিউম","flashlight","টর্চ","লাইট","brightness","ব্রাইটনেস","screenshot","স্ক্রিনশট","notification","নোটিফিকেশন","wifi","ওয়াইফাই","ব্লুটুথ","scroll","স্ক্রল","call","কল","message","মেসেজ","click","ক্লিক","tap","ট্যাপ","type","টাইপ"};
+            for(String k:keys)if(s.contains(k))score+=2;
+            if(s.length()>=4)score++;
+            if(score>bestScore){bestScore=score;best=raw.trim();}
+        }
+        return best;
+    }
+
     private String normalizeSpeech(String s){
         if(s==null)return "";
-        return s.replace("হেই জারভিস","").replace("হে জারভিস","").replace("hey jarvis","").trim();
+        return s.replace("হেই জারভিস","").replace("হে জারভিস","").replace("হেই জার্ভিস","").replace("হে জার্ভিস","").replace("hey jarvis","").replace("hey jarvis,","").trim();
     }
 
     private int dp(float v){return (int)(v*getResources().getDisplayMetrics().density+0.5f);}
