@@ -36,6 +36,9 @@ public class JarvisWakeService extends Service {
         tts = new JarvisTts(this);
         overlay = new JarvisFloatingOverlay(this);
         overlay.show();
+        handler.postDelayed(() -> {
+            if (running && overlay != null) overlay.show();
+        }, 1200);
         channel();
 
         Intent open = new Intent(this, MainActivity.class);
