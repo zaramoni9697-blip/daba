@@ -33,6 +33,7 @@ public class MainActivity extends AppCompatActivity {
     private SpeechRecognizer recognizer;
     private boolean activityVisible=false;
     private boolean cloudVoiceInProgress=false;
+    private boolean overlayPermissionRequested=false;
     private FrameLayout mainRoot;
     private LinearLayout historyList;
     private View drawerOverlay;
@@ -79,6 +80,15 @@ public class MainActivity extends AppCompatActivity {
             try { stopService(new Intent(this,JarvisWakeService.class)); } catch(Exception ignored) {}
         }
         externalAppLaunch=false;
+        if(!overlayPermissionRequested && !"false".equals(SecureStore.get(this,"wake_enabled"))
+                && Build.VERSION.SDK_INT >= 23 && !Settings.canDrawOverlays(this)){
+            overlayPermissionRequested=true;
+            try{
+                Intent i=new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                        android.net.Uri.parse("package:"+getPackageName()));
+                startActivity(i);
+            }catch(Exception ignored){}
+        }
         if(continuousVoice && mic())
             handler.postDelayed(this::listen,700);
     }
