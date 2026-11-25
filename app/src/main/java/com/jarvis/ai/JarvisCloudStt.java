@@ -113,7 +113,7 @@ public final class JarvisCloudStt {
         c.setRequestProperty("Content-Type","multipart/form-data; boundary="+boundary);
         try(DataOutputStream o=new DataOutputStream(c.getOutputStream())){
             part(o,boundary,"model","whisper-large-v3-turbo");
-            part(o,boundary,"prompt","JARVIS voice command. Preserve Bengali and English words exactly. Common words: hello, hey jarvis, open, Facebook, YouTube, settings, home, back, volume, Wi-Fi.");
+            part(o,boundary,"prompt","JARVIS Android voice command. Preserve Bengali and English mixed speech. Do not translate or paraphrase. Prefer exact command words and app names. Common phrases: JARVIS, hey jarvis, open, খুলে দাও, খোলো, চালু কর, চালু করো, করো, Facebook, YouTube, Messenger, WhatsApp, Telegram, Settings, Chrome, Camera, Gallery, home, back, volume, flashlight, torch, brightness, screenshot, notifications, Wi-Fi, Bluetooth, mobile data, scroll, click, tap, type, call, message, হোম, ব্যাক, ভলিউম, টর্চ, লাইট, স্ক্রিনশট, নোটিফিকেশন, ওয়াইফাই, ব্লুটুথ, মেসেজ. Keep the original language and wording as closely as possible.");
             o.writeBytes("--"+boundary+"\r\n");
             o.writeBytes("Content-Disposition: form-data; name=\"file\"; filename=\"voice.wav\"\r\n");
             o.writeBytes("Content-Type: audio/wav\r\n\r\n");
