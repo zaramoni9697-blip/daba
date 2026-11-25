@@ -4,6 +4,7 @@ import android.app.*;
 import android.content.*;
 import android.os.*;
 import android.speech.*;
+import android.provider.Settings;
 import java.util.*;
 
 public class JarvisWakeService extends Service {
@@ -35,10 +36,6 @@ public class JarvisWakeService extends Service {
         engine = new JarvisEngine(this);
         tts = new JarvisTts(this);
         overlay = new JarvisFloatingOverlay(this);
-        overlay.show();
-        handler.postDelayed(() -> {
-            if (running && overlay != null) overlay.show();
-        }, 1200);
         channel();
 
         Intent open = new Intent(this, MainActivity.class);
@@ -55,6 +52,7 @@ public class JarvisWakeService extends Service {
                 .build();
         startForeground(NOTIFICATION_ID, n);
         startRecognizer();
+        retryOverlay();
     }
 
     private void startRecognizer() {
@@ -68,6 +66,15 @@ public class JarvisWakeService extends Service {
         commandConsumed = false;
         createRecognizer();
         scheduleListen(250);
+    }
+
+
+    private void retryOverlay() {
+        if (!running || overlay == null) return;
+        overlay.show();
+        if (Build.VERSION.SDK_INT >= 23 && !Settings.canDrawOverlays(this)) {
+            handler.postDelayed(this::retryOverlay, 1200);
+        }
     }
 
     private void createRecognizer() {
