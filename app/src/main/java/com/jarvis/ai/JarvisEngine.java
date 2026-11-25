@@ -79,13 +79,14 @@ public class JarvisEngine {
     }
 
     private String gemini(String key,String prompt)throws Exception{
-        URL u=new URL("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key="+key);
+        URL u=new URL("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent);
         HttpURLConnection c=(HttpURLConnection)u.openConnection();
         c.setRequestMethod("POST");
         c.setDoOutput(true);
         c.setConnectTimeout(6000);
         c.setReadTimeout(15000);
         c.setRequestProperty("Content-Type","application/json");
+        c.setRequestProperty("x-goog-api-key",key);
 
         JSONObject body=new JSONObject()
             .put("contents",new JSONArray().put(new JSONObject()
