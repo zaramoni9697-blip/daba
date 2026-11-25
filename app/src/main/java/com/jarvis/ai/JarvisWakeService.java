@@ -12,6 +12,8 @@ public class JarvisWakeService extends Service {
     private boolean running;
     private boolean awaitingCommand;
     private boolean commandConsumed;
+    private boolean listening;
+    private long lastListenAt;
     private static volatile boolean active;
     private static final String CH = "jarvis_v1";
     private static final int NOTIFICATION_ID = 1001;
@@ -64,27 +66,33 @@ public class JarvisWakeService extends Service {
 
     private void createRecognizer() {
         if (recognizer != null) {
+            try { recognizer.cancel(); } catch (Exception ignored) {}
             try { recognizer.destroy(); } catch (Exception ignored) {}
+            recognizer = null;
         }
         recognizer = SpeechRecognizer.createSpeechRecognizer(this);
         recognizer.setRecognitionListener(new RecognitionListener() {
             public void onResults(Bundle b) {
+                listening = false;
                 if (!running || commandConsumed) return;
                 ArrayList<String> results = b.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
                 handleResults(results);
+                if (!commandConsumed) scheduleListen(awaitingCommand ? 250 : 450);
             }
             public void onPartialResults(Bundle b) {
-                if (!running || commandConsumed) return;
-                ArrayList<String> results = b.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
-                handleResults(results);
+                // Ignore partial text here. Only final results execute commands.
             }
             public void onError(int e) {
+                listening = false;
                 if (!running) return;
                 commandConsumed = false;
-                scheduleListen(awaitingCommand ? 350 : 700);
+                recreateRecognizerAndListen(awaitingCommand ? 350 : 500);
             }
-            public void onReadyForSpeech(Bundle b) {}
-            public void onBeginningOfSpeech() {}
+            public void onReadyForSpeech(Bundle b) {
+                listening = true;
+                lastListenAt = SystemClock.elapsedRealtime();
+            }
+            public void onBeginningOfSpeech() { listening = true; }
             public void onRmsChanged(float r) {}
             public void onBufferReceived(byte[] b) {}
             public void onEndOfSpeech() {}
@@ -92,15 +100,36 @@ public class JarvisWakeService extends Service {
         });
     }
 
+    private void recreateRecognizerAndListen(long delay) {
+        if (!running) return;
+        handler.removeCallbacksAndMessages(null);
+        if (recognizer != null) {
+            try { recognizer.cancel(); } catch (Exception ignored) {}
+            try { recognizer.destroy(); } catch (Exception ignored) {}
+            recognizer = null;
+        }
+        handler.postDelayed(() -> {
+            if (!running) return;
+            createRecognizer();
+            listen();
+        }, delay);
+    }
+
     private void scheduleListen(long delay) {
         if (!running) return;
         handler.removeCallbacksAndMessages(null);
-        handler.postDelayed(this::listen, delay);
+        handler.postDelayed(() -> {
+            if (!running) return;
+            createRecognizer();
+            listen();
+        }, delay);
     }
 
     private void listen() {
-        if (!running || recognizer == null) return;
+        if (!running || recognizer == null || listening) return;
         commandConsumed = false;
+        listening = true;
+        lastListenAt = SystemClock.elapsedRealtime();
         Intent i = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
         i.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
         i.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true);
@@ -120,7 +149,8 @@ public class JarvisWakeService extends Service {
         try {
             recognizer.startListening(i);
         } catch (Exception e) {
-            scheduleListen(1200);
+            listening = false;
+            recreateRecognizerAndListen(1000);
         }
     }
 
@@ -230,6 +260,7 @@ public class JarvisWakeService extends Service {
         running = false;
         active = false;
         if (handler != null) handler.removeCallbacksAndMessages(null);
+        listening = false;
         if (recognizer != null) {
             try { recognizer.destroy(); } catch (Exception ignored) {}
             recognizer = null;
