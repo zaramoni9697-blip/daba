@@ -54,13 +54,13 @@ public final class JarvisCloudStt {
                     if(speechStarted==0){
                         noiseFloor=noiseFloor*0.88+avg*0.12;
                     }
-                    double target=Math.max(700.0,noiseFloor*3.0);
-                    double gain=avg<1?6.0:Math.min(10.0,Math.max(1.8,2200.0/Math.max(avg,180.0)));
+                    double target=Math.max(520.0,noiseFloor*2.2);
+                    double gain=avg<1?7.0:Math.min(12.0,Math.max(2.0,2600.0/Math.max(avg,150.0)));
                     for(int p=0;p+1<n;p+=2){
                         int sample=(short)(((b[p+1]&0xff)<<8)|(b[p]&0xff));
                         double centered=sample;
                         double boosted=centered*gain;
-                        if(Math.abs(boosted)<noiseFloor*1.15 && speechStarted==0)boosted=0;
+                        if(Math.abs(boosted)<noiseFloor*0.75 && speechStarted==0)boosted=0;
                         boosted=Math.max(-32767,Math.min(32767,boosted));
                         short s=(short)boosted;
                         b[p]=(byte)(s&0xff); b[p+1]=(byte)((s>>8)&0xff);
