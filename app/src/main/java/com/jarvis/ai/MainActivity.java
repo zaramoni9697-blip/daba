@@ -80,7 +80,7 @@ public class MainActivity extends AppCompatActivity {
             try { stopService(new Intent(this,JarvisWakeService.class)); } catch(Exception ignored) {}
         }
         externalAppLaunch=false;
-        if(!overlayPermissionRequested && !"false".equals(SecureStore.get(this,"wake_enabled"))
+        if(!overlayPermissionRequested
                 && Build.VERSION.SDK_INT >= 23 && !Settings.canDrawOverlays(this)){
             overlayPermissionRequested=true;
             try{
@@ -99,7 +99,7 @@ public class MainActivity extends AppCompatActivity {
         if(isFinishing()) return;
         handler.removeCallbacksAndMessages(null);
         stopInAppRecognizer();
-        if(mic() && !"false".equals(SecureStore.get(this,"wake_enabled")))
+        if(mic())
             handler.postDelayed(this::ensureWakeService,700);
     }
 
