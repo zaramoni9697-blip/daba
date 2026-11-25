@@ -10,9 +10,16 @@ public class JarvisWakeService extends Service {
     private SpeechRecognizer recognizer;
     private Handler handler;
     private boolean running;
+    private boolean awaitingCommand;
+    private boolean commandConsumed;
     private static volatile boolean active;
     private static final String CH = "jarvis_v1";
     private static final int NOTIFICATION_ID = 1001;
+
+    private JarvisCommandRouter router;
+    private JarvisActionExecutor executor;
+    private JarvisEngine engine;
+    private JarvisTts tts;
 
     public static boolean isRunning() { return active; }
 
@@ -20,6 +27,10 @@ public class JarvisWakeService extends Service {
         super.onCreate();
         handler = new Handler(Looper.getMainLooper());
         active = true;
+        router = new JarvisCommandRouter();
+        executor = new JarvisActionExecutor(this);
+        engine = new JarvisEngine(this);
+        tts = new JarvisTts(this);
         channel();
 
         Intent open = new Intent(this, MainActivity.class);
@@ -28,7 +39,7 @@ public class JarvisWakeService extends Service {
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
         Notification n = new Notification.Builder(this, CH)
-                .setContentTitle("JARVIS • Wake Listener")
+                .setContentTitle("JARVIS • Background Listener")
                 .setContentText("Listening for “Hey JARVIS” • বাংলা / English")
                 .setSmallIcon(android.R.drawable.ic_btn_speak_now)
                 .setContentIntent(pi)
@@ -45,6 +56,8 @@ public class JarvisWakeService extends Service {
             return;
         }
         running = true;
+        awaitingCommand = false;
+        commandConsumed = false;
         createRecognizer();
         scheduleListen(250);
     }
@@ -55,9 +68,21 @@ public class JarvisWakeService extends Service {
         }
         recognizer = SpeechRecognizer.createSpeechRecognizer(this);
         recognizer.setRecognitionListener(new RecognitionListener() {
-            public void onResults(Bundle b) { check(b); scheduleListen(300); }
-            public void onPartialResults(Bundle b) { check(b); }
-            public void onError(int e) { scheduleListen(700); }
+            public void onResults(Bundle b) {
+                if (!running || commandConsumed) return;
+                ArrayList<String> results = b.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+                handleResults(results);
+            }
+            public void onPartialResults(Bundle b) {
+                if (!running || commandConsumed) return;
+                ArrayList<String> results = b.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+                handleResults(results);
+            }
+            public void onError(int e) {
+                if (!running) return;
+                commandConsumed = false;
+                scheduleListen(awaitingCommand ? 350 : 700);
+            }
             public void onReadyForSpeech(Bundle b) {}
             public void onBeginningOfSpeech() {}
             public void onRmsChanged(float r) {}
@@ -75,16 +100,18 @@ public class JarvisWakeService extends Service {
 
     private void listen() {
         if (!running || recognizer == null) return;
+        commandConsumed = false;
         Intent i = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
         i.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
         i.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true);
         i.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 5);
-        String lang = SecureStore.get(this, "speech_language");
+        i.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, awaitingCommand ? 2500 : 1800);
+        i.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, awaitingCommand ? 800 : 1000);
+        i.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, awaitingCommand ? 1800 : 1200);
 
-        // Wake phrase must work in both Bengali and English.
-        // Bengali is primary for normal commands, but English wake words are accepted too.
+        String lang = SecureStore.get(this, "speech_language");
         if (lang == null || lang.isEmpty() || "AUTO".equals(lang)) {
-            i.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "en-US");
+            i.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "bn-BD");
             i.putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, "bn-BD,en-US");
         } else {
             i.putExtra(RecognizerIntent.EXTRA_LANGUAGE, lang);
@@ -97,47 +124,100 @@ public class JarvisWakeService extends Service {
         }
     }
 
-    private void check(Bundle b) {
-        ArrayList<String> results = b.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
-        if (results == null) return;
+    private void handleResults(ArrayList<String> results) {
+        if (results == null || results.isEmpty()) return;
 
-        for (String s : results) {
-            if (isWakePhrase(s)) {
-                triggerWake();
+        for (String raw : results) {
+            if (raw == null || raw.trim().isEmpty()) continue;
+            String s = raw.trim();
+
+            if (!awaitingCommand) {
+                String command = commandAfterWake(s);
+                if (command != null) {
+                    awaitingCommand = true;
+                    if (!command.isEmpty()) {
+                        commandConsumed = true;
+                        runBackgroundCommand(command);
+                    } else {
+                        speak("হ্যাঁ, বলুন।");
+                        scheduleListen(250);
+                    }
+                    return;
+                }
+            } else {
+                commandConsumed = true;
+                runBackgroundCommand(s);
                 return;
             }
         }
     }
 
-    private boolean isWakePhrase(String value) {
-        if (value == null) return false;
+    private String commandAfterWake(String value) {
+        if (value == null) return null;
         String x = value.toLowerCase(Locale.ROOT).trim()
                 .replace("হে জার্ভিস", "হে জারভিস")
                 .replace("হেই জার্ভিস", "হেই জারভিস")
                 .replace("জার্ভিস", "জারভিস");
 
-        return x.contains("hey jarvis")
-                || x.contains("hey, jarvis")
-                || x.contains("হেই জারভিস")
-                || x.contains("হে জারভিস")
-                || x.contains("হে জার্ভিস")
-                || x.contains("হেই জার্ভিস");
+        String[] wake = {
+                "hey jarvis", "hey, jarvis", "hey jarvis,",
+                "হেই জারভিস", "হে জারভিস"
+        };
+
+        for (String w : wake) {
+            int p = x.indexOf(w);
+            if (p >= 0) {
+                String rest = x.substring(p + w.length()).trim();
+                if (rest.startsWith(",") || rest.startsWith(":")) rest = rest.substring(1).trim();
+                return rest;
+            }
+        }
+        return null;
     }
 
-    private void triggerWake() {
-        handler.removeCallbacksAndMessages(null);
-        Intent in = new Intent(this, MainActivity.class);
-        in.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        in.putExtra("wake", true);
-        startActivity(in);
-        scheduleListen(1800);
+    private void runBackgroundCommand(String command) {
+        if (command == null || command.trim().isEmpty()) {
+            awaitingCommand = false;
+            commandConsumed = false;
+            scheduleListen(350);
+            return;
+        }
+
+        final String text = command.trim();
+        new Thread(() -> {
+            JarvisAction action = router.route(text);
+            String answer;
+
+            if (action.type == JarvisAction.Type.ASK_AI) {
+                answer = engine.ask(text);
+            } else {
+                answer = executor.execute(action);
+            }
+
+            final String reply = answer;
+            handler.post(() -> {
+                if (reply != null && !reply.trim().isEmpty()
+                        && !"false".equals(SecureStore.get(this, "voice_replies"))) {
+                    tts.speak(reply);
+                }
+                awaitingCommand = false;
+                commandConsumed = false;
+                scheduleListen(700);
+            });
+        }).start();
+    }
+
+    private void speak(String text) {
+        if (!"false".equals(SecureStore.get(this, "voice_replies"))) {
+            tts.speak(text);
+        }
     }
 
     private void channel() {
         if (Build.VERSION.SDK_INT >= 26) {
             NotificationChannel c = new NotificationChannel(
-                    CH, "JARVIS Wake Listener", NotificationManager.IMPORTANCE_LOW);
-            c.setDescription("Keeps JARVIS ready for the Hey JARVIS wake phrase.");
+                    CH, "JARVIS Background Listener", NotificationManager.IMPORTANCE_LOW);
+            c.setDescription("Keeps JARVIS ready for the Hey JARVIS wake phrase and commands.");
             getSystemService(NotificationManager.class).createNotificationChannel(c);
         }
     }
@@ -153,6 +233,10 @@ public class JarvisWakeService extends Service {
         if (recognizer != null) {
             try { recognizer.destroy(); } catch (Exception ignored) {}
             recognizer = null;
+        }
+        if (tts != null) {
+            try { tts.shutdown(); } catch (Exception ignored) {}
+            tts = null;
         }
         super.onDestroy();
     }
