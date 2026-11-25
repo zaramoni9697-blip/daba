@@ -35,10 +35,6 @@
         </activity>
 
         <service
-            android:name=".JarvisFloatingOverlayService_PLACEHOLDER"
-            android:enabled="false"/>
-
-        <service
             android:name=".JarvisWakeService"
             android:exported="false"
             android:foregroundServiceType="microphone"/>
