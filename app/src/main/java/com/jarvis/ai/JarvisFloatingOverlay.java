@@ -1,5 +1,6 @@
 package com.jarvis.ai;
 
+import android.app.Service;
 import android.content.*;
 import android.graphics.Color;
 import android.graphics.PixelFormat;
