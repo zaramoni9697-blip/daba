@@ -2,9 +2,7 @@ package com.jarvis.ai;
 
 import android.app.Service;
 import android.content.*;
-import android.graphics.Color;
 import android.graphics.PixelFormat;
-import android.graphics.drawable.GradientDrawable;
 import android.os.*;
 import android.provider.Settings;
 import android.view.*;
@@ -31,13 +29,7 @@ public class JarvisFloatingOverlay {
 
         ImageView icon = new ImageView(service);
         icon.setImageResource(com.jarvis.ai.R.drawable.jarvis_icon);
-        icon.setPadding(7,7,7,7);
-        GradientDrawable bg = new GradientDrawable();
-        bg.setShape(GradientDrawable.OVAL);
-        bg.setColor(Color.argb(235, 18, 22, 30));
-        bg.setStroke(2, Color.argb(220, 90, 190, 255));
-        icon.setBackground(bg);
-        icon.setElevation(12f);
+        icon.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
 
         lp = new WindowManager.LayoutParams(
                 size, size,
@@ -96,9 +88,11 @@ public class JarvisFloatingOverlay {
     private int getX() {
         return service.getSharedPreferences("jarvis_overlay",Context.MODE_PRIVATE).getInt("x",16);
     }
+
     private int getY() {
         return service.getSharedPreferences("jarvis_overlay",Context.MODE_PRIVATE).getInt("y",180);
     }
+
     private void savePosition(int x,int y) {
         service.getSharedPreferences("jarvis_overlay",Context.MODE_PRIVATE)
                 .edit().putInt("x",x).putInt("y",y).apply();
