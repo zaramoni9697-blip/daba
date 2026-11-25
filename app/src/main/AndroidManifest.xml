@@ -8,6 +8,7 @@
     <uses-permission android:name="android.permission.SEND_SMS"/>
     <uses-permission android:name="android.permission.READ_CONTACTS"/>
     <uses-permission android:name="android.permission.WRITE_SETTINGS"/>
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
     <queries>
         <package android:name="com.facebook.katana"/><package android:name="com.facebook.lite"/><package android:name="com.google.android.youtube"/>
         <package android:name="com.facebook.orca"/><package android:name="com.whatsapp"/><package android:name="org.telegram.messenger"/>
@@ -32,6 +33,10 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+
+        <service
+            android:name=".JarvisFloatingOverlayService_PLACEHOLDER"
+            android:enabled="false"/>
 
         <service
             android:name=".JarvisWakeService"
