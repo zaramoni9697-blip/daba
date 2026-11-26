@@ -47,6 +47,7 @@ public class MainActivity extends AppCompatActivity {
         subtitle=findViewById(R.id.subtitle);
         mainRoot=findViewById(R.id.mainRoot);
         engine=new JarvisEngine(this);
+        if(SecureStore.get(this,"wake_enabled")==null) SecureStore.put(this,"wake_enabled","true");
         tts=new JarvisTts(this);
         executor=new JarvisActionExecutor(this);
 
@@ -80,15 +81,6 @@ public class MainActivity extends AppCompatActivity {
             try { stopService(new Intent(this,JarvisWakeService.class)); } catch(Exception ignored) {}
         }
         externalAppLaunch=false;
-        if(!overlayPermissionRequested
-                && Build.VERSION.SDK_INT >= 23 && !Settings.canDrawOverlays(this)){
-            overlayPermissionRequested=true;
-            try{
-                Intent i=new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                        android.net.Uri.parse("package:"+getPackageName()));
-                startActivity(i);
-            }catch(Exception ignored){}
-        }
         if(continuousVoice && mic())
             handler.postDelayed(this::listen,700);
     }
@@ -99,7 +91,7 @@ public class MainActivity extends AppCompatActivity {
         if(isFinishing()) return;
         handler.removeCallbacksAndMessages(null);
         stopInAppRecognizer();
-        if(mic())
+        if(mic() && !"false".equals(SecureStore.get(this,"wake_enabled")))
             handler.postDelayed(this::ensureWakeService,700);
     }
 
@@ -113,7 +105,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void ensureWakeService(){
-        if(!mic() || JarvisWakeService.isRunning()) return;
+        if(!mic() || "false".equals(SecureStore.get(this,"wake_enabled")) || JarvisWakeService.isRunning()) return;
         try { ContextCompat.startForegroundService(this,new Intent(this,JarvisWakeService.class)); }
         catch(Exception ignored) {}
     }
